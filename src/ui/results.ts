@@ -5,6 +5,7 @@ import type { RunResult } from '../game/RunScene';
 import { ApiError, api, type RankInfo, type SpinResult, type SubmitResult } from '../net/api';
 import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
+import QRCode from 'qrcode';
 import { confetti } from './confetti';
 import { Wheel } from './wheel';
 
@@ -293,6 +294,9 @@ function redeemCard(r: SpinResult, nickname: string): HTMLElement {
   setTimeout(tick, 0);
   clock.textContent = `LIVE ${new Date().toLocaleTimeString('en-GB')}`;
   const small = el('small', '', `${nickname} · show this screen to booth staff`);
-  card.append(el('div', 'prize', r.prize_name), el('div', 'code', r.code), live, small);
+  // QR of the code, so staff can scan it instead of typing (where their phone supports it).
+  const qr = el('canvas', 'qr');
+  void QRCode.toCanvas(qr, r.code, { width: 96, margin: 0, color: { dark: '#1b1b2f', light: '#fff6e0' } }).catch(() => qr.remove());
+  card.append(el('div', 'prize', r.prize_name), el('div', 'code', r.code), qr, live, small);
   return card;
 }

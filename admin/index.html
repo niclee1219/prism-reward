@@ -1,1 +1,59 @@
-<!doctype html><title>admin</title>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>PRISM Run · Staff</title>
+  </head>
+  <body class="admin-page">
+    <form id="login" class="login">
+      <h1>PRISM Run staff</h1>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Staff PIN" />
+      <button class="btn" type="submit">Unlock</button>
+      <div class="msg err" id="login-msg"></div>
+    </form>
+
+    <main id="app" hidden>
+      <nav class="tabs" id="tabs">
+        <button data-tab="redeem" class="on">Redeem</button>
+        <button data-tab="runs">Runs</button>
+        <button data-tab="prizes">Prizes</button>
+        <button data-tab="toggles">Toggles</button>
+        <button data-tab="export">Export</button>
+      </nav>
+
+      <section data-panel="redeem">
+        <form id="redeem-form" class="row-form">
+          <input id="code" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" />
+          <button class="btn" type="submit">Redeem</button>
+        </form>
+        <button class="btn btn-ghost" id="scan" type="button" hidden>📷 Scan the player's screen</button>
+        <video id="scan-video" playsinline hidden></video>
+        <div id="redeem-result" class="result"></div>
+      </section>
+
+      <section data-panel="runs" hidden>
+        <input id="run-search" class="field" placeholder="Search nickname" autocomplete="off" />
+        <div id="runs-list" class="list"></div>
+      </section>
+
+      <section data-panel="prizes" hidden>
+        <div id="prizes-list" class="list"></div>
+        <p class="notice">Stock is what is left to win. Weight is the chance relative to the other prizes.</p>
+      </section>
+
+      <section data-panel="toggles" hidden>
+        <div id="toggles-list" class="list"></div>
+      </section>
+
+      <section data-panel="export" hidden>
+        <div id="stats" class="stats-grid"></div>
+        <button class="btn" id="export-emails" type="button">Download emails (CSV)</button>
+        <div class="msg" id="export-msg"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/admin/admin.ts"></script>
+  </body>
+</html>

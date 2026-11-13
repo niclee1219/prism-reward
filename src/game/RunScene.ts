@@ -467,6 +467,8 @@ export class RunScene extends Phaser.Scene {
       obstacles: this.obstacles.filter((o) => !o.resolved).map((o) => ({ lane: o.lane, y: o.sprite.y })),
       playerY: this.playerY,
       score: this.score.score,
+      correct: this.score.correct,
+      wrong: this.score.wrong,
       shield: this.hasShield,
     };
   }

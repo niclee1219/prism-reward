@@ -127,6 +127,7 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
 .redeem .live { display: flex; justify-content: center; align-items: center; gap: 8px; font: 700 15px var(--mono); }
 .redeem .live i { width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+.redeem .qr { display: block; margin: 2px auto 8px; image-rendering: pixelated; }
 .redeem small { display: block; margin-top: 6px; font-size: 13px; }
 .old-prizes { font: 13px var(--mono); opacity: 0.7; }
 .confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }

@@ -5,3 +5,4 @@ dev-dist
 .env.local
 .localdb
 *.log
+tests/e2e/.last-redeem.png

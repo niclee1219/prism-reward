@@ -31,8 +31,20 @@ export class Wheel {
       const d = n === 1 ? '' : `M0,0 L${p(a0, 100)} A100,100 0 0 1 ${p(a1, 100)} Z`;
       html += n === 1 ? `<circle r="100" fill="${COLOURS[0]}"/>` : `<path d="${d}" fill="${COLOURS[i % COLOURS.length]}" stroke="#1b1b2f" stroke-width="2"/>`;
       const deg = (i * 360) / n;
-      const label = name.length > 16 ? `${name.slice(0, 15)}…` : name;
-      html += `<text transform="rotate(${deg}) translate(0,-58) rotate(90)" text-anchor="middle" dominant-baseline="middle" font-family="Courier New, monospace" font-weight="700" font-size="${n > 6 ? 8.5 : 10}" fill="#1b1b2f">${label.replace(/[<&>]/g, '')}</text>`;
+      // Long names wrap onto two lines, split at the space nearest the middle.
+      const clean = name.replace(/[<&>]/g, '');
+      let lines = [clean];
+      if (clean.length > 12 && clean.includes(' ')) {
+        const spaces = [...clean].map((ch, at) => (ch === ' ' ? at : -1)).filter((at) => at > 0);
+        const cut = spaces.reduce((best, at) => (Math.abs(at - clean.length / 2) < Math.abs(best - clean.length / 2) ? at : best));
+        lines = [clean.slice(0, cut), clean.slice(cut + 1)];
+      }
+      const longest = Math.max(...lines.map((l) => l.length));
+      const size = n > 6 || longest > 12 ? 7.5 : 9;
+      const spans = lines
+        .map((line, li) => `<tspan x="0" dy="${li === 0 ? (lines.length === 1 ? 0 : -size * 0.6) : size * 1.2}">${line.length > 17 ? `${line.slice(0, 16)}…` : line}</tspan>`)
+        .join('');
+      html += `<text transform="rotate(${deg}) translate(0,-60) rotate(90)" text-anchor="middle" dominant-baseline="middle" font-family="Courier New, monospace" font-weight="700" font-size="${size}" fill="#1b1b2f">${spans}</text>`;
     });
     html += '<circle r="12" fill="#fff6e0" stroke="#1b1b2f" stroke-width="3"/>';
     this.svg.innerHTML = html;
