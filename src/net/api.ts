@@ -30,7 +30,7 @@ export interface SubmitResult extends RankInfo {
 }
 
 export interface LeaderboardResult {
-  top: { rank: number; nickname: string; score: number }[];
+  top: { rank: number; nickname: string; score: number; key: string }[];
   total_players: number;
   total_plays: number;
   me: { rank: number; score: number } | null;

@@ -1,0 +1,14 @@
+# The functions do their own checks (rate limits, score cap, admin PIN), so the
+# platform JWT check is off. The anon key is still sent by the client and accepted.
+[functions.submit-run]
+verify_jwt = false
+[functions.leaderboard]
+verify_jwt = false
+[functions.spin]
+verify_jwt = false
+[functions.vote]
+verify_jwt = false
+[functions.email]
+verify_jwt = false
+[functions.admin]
+verify_jwt = false
