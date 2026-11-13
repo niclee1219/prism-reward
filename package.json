@@ -1,0 +1,31 @@
+{
+  "name": "prism-run",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run tests/unit",
+    "test:backend": "vitest run tests/backend",
+    "test:e2e": "node tests/e2e/smoke.mjs",
+    "backend:local": "tsx scripts/local-backend.ts",
+    "load-test": "tsx scripts/load-test.ts"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0"
+  }
+}
