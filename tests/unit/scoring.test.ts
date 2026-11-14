@@ -37,7 +37,8 @@ describe('scoring', () => {
     expect(implausibleReason({ score: 10, correct: 30, wrong: 0, gates: 30, duration_ms: 10000 })).toBe('too_many_gates');
     expect(implausibleReason({ score: 10, correct: 4, wrong: 4, gates: 5, duration_ms: 60000 })).toBe('bad_counts');
     expect(implausibleReason({ score: -1, correct: 0, wrong: 0, gates: 0, duration_ms: 1000 })).toBe('bad_numbers');
-    expect(maxPlausibleScore(0, 0)).toBeLessThan(100);
+    // 50 slack + at most one coin line (5 coins x 10 x 2). An empty run still cannot rank.
+    expect(maxPlausibleScore(0, 0)).toBeLessThanOrEqual(150);
   });
 });
 

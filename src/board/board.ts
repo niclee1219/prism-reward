@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import '../ui/styles.css';
 import './board.css';
 import { NET } from '../config';
+import { DISHES } from '../content/dishes';
 import { api, type LeaderboardResult } from '../net/api';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -44,7 +45,9 @@ function render(data: LeaderboardResult): void {
     li.className = `row r${entry.rank}`;
     li.dataset.rank = String(entry.rank);
     (li.children[0] as HTMLElement).textContent = `#${entry.rank}`;
-    (li.children[1] as HTMLElement).textContent = entry.nickname;
+    // Dish emoji before the name, and a plate for players who served the full recipe.
+    const dish = DISHES.find((d) => d.id === entry.dish);
+    (li.children[1] as HTMLElement).textContent = `${dish ? `${dish.emoji} ` : ''}${entry.nickname}${entry.served ? ' 🍽️' : ''}`;
     (li.children[2] as HTMLElement).textContent = entry.score.toLocaleString('en');
     rowsEl.appendChild(li); // appending in rank order re-orders existing rows
     if (isNew && lastPlays >= 0) li.classList.add('new');

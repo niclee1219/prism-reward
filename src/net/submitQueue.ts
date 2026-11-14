@@ -12,6 +12,8 @@ export interface QueuedRun {
   wrong: number;
   gates: number;
   duration_ms: number;
+  /** Which recipe was played. Optional: runs queued by an older version have none. */
+  dish?: string;
 }
 
 export type Outcome = { ok: true; result: SubmitResult } | { ok: false; code: string };

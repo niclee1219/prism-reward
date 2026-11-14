@@ -1,10 +1,11 @@
-import Phaser from 'phaser';
 import { registerSW } from 'virtual:pwa-register';
 import './ui/styles.css';
 import { NICKNAME_MAX, VIEW } from './config';
+import { DISHES, dishById, isDishId, type DishId } from './content/dishes';
 import { suggestNickname } from './content/nicknames';
 import { attachInput } from './game/input';
-import { RunScene, type RunResult } from './game/RunScene';
+import { RunSim, type RunResult } from './game/sim/RunSim';
+import { World } from './game/three/World';
 import { local, uuid } from './net/device';
 import { enqueue, flush } from './net/submitQueue';
 import { Hud } from './ui/hud';
@@ -15,13 +16,9 @@ registerSW({ immediate: true });
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const stage = $('stage');
 
-// The canvas keeps the phone's aspect ratio (within limits) so nothing is letterboxed on phones.
-const clampAspect = () => {
-  const a = window.innerHeight / window.innerWidth;
-  return Math.min(Math.max(a, VIEW.MIN_HEIGHT / VIEW.WIDTH), VIEW.MAX_HEIGHT / VIEW.WIDTH);
-};
-const aspect = clampAspect();
+// The stage keeps the phone's aspect ratio (within limits) so nothing is letterboxed on phones.
 const fitStage = () => {
+  const aspect = Math.min(Math.max(window.innerHeight / window.innerWidth, VIEW.MIN_ASPECT), VIEW.MAX_ASPECT);
   const w = Math.min(window.innerWidth, window.innerHeight / aspect);
   stage.style.width = `${Math.floor(w)}px`;
   stage.style.height = `${Math.floor(w * aspect)}px`;
@@ -29,22 +26,16 @@ const fitStage = () => {
 fitStage();
 window.addEventListener('resize', fitStage);
 
-const scene = new RunScene();
-new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'game',
-  width: VIEW.WIDTH,
-  height: Math.round(VIEW.WIDTH * aspect),
-  backgroundColor: '#1b1b2f',
-  banner: false,
-  audio: { noAudio: true },
-  input: { keyboard: false, mouse: false, touch: false, gamepad: false },
-  render: { pixelArt: true, antialias: false, roundPixels: true, powerPreference: 'high-performance' },
-  scale: { mode: Phaser.Scale.NONE },
-  scene,
+const hud = new Hud(stage);
+const sim = new RunSim();
+const world = new World(stage, $('game'), sim, {
+  onIngredient: (x, y, step) => hud.ingredient(x, y, step),
+  onCoin: (_points, doubled) => hud.coin(doubled),
+  onPower: () => {},
+  onPlating: (x, y) => hud.plating(x, y),
 });
+(window as unknown as { __prism?: RunSim }).__prism = sim;
 
-const hud = new Hud();
 const startScreen = $('screen-start');
 const resultsScreen = $('screen-results');
 const nickInput = $<HTMLInputElement>('nickname');
@@ -52,7 +43,28 @@ const nickInput = $<HTMLInputElement>('nickname');
 nickInput.value = local.nickname ?? suggestNickname();
 $('reroll').addEventListener('click', () => (nickInput.value = suggestNickname()));
 
-attachInput(stage, (dir) => scene.move(dir));
+// Dish picker: three cards, the last choice is remembered.
+let dish: DishId = isDishId(local.dish) ? local.dish : DISHES[0].id;
+const picker = $('dishes');
+for (const d of DISHES) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'dish';
+  b.dataset.dish = d.id;
+  b.style.setProperty('--dish', d.colour);
+  b.innerHTML = `<span class="dish-emoji">${d.emoji}</span><span class="dish-name">${d.name}</span>`;
+  b.setAttribute('aria-pressed', String(d.id === dish));
+  b.addEventListener('click', () => {
+    dish = d.id;
+    local.dish = dish;
+    picker.querySelectorAll<HTMLElement>('.dish').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.dish === dish)));
+    $('dish-blurb').textContent = d.blurb;
+  });
+  picker.append(b);
+}
+$('dish-blurb').textContent = dishById(dish).blurb;
+
+attachInput(stage, (dir) => sim.move(dir));
 
 // Stop the browser's own gestures (pull-to-refresh, pinch, double-tap zoom) on the game page.
 document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).closest('.strip')) e.preventDefault(); }, { passive: false });
@@ -64,18 +76,38 @@ function cleanNickname(): string {
   return name || suggestNickname();
 }
 
+let starting = false;
+
 function play(): void {
+  if (starting) return; // a double tap on PLAY must not start two countdowns
+  starting = true;
   const nickname = cleanNickname();
   local.nickname = nickname;
   nickInput.blur();
-  startScreen.hidden = true;
+  // The start screen whooshes away instead of blinking out.
+  if (!startScreen.hidden) {
+    startScreen.classList.add('leaving');
+    setTimeout(() => {
+      startScreen.hidden = true;
+      startScreen.classList.remove('leaving');
+    }, 320);
+  }
   resultsScreen.hidden = true;
-  hud.show(true);
-  scene.startRun({
-    onHud: (h) => hud.update(h),
-    onQuestion: (gq, tutorial) => hud.question(gq, tutorial),
-    onGateResult: (chosen, correctLane, correct) => hud.gateResult(chosen, correctLane, correct),
-    onEnd: (result) => finish(result, nickname),
+  hud.show(true, dishById(dish));
+  world.reset();
+  sim.idle();
+  // Camera swoop + READY / SET; the run itself starts on GO!
+  world.intro(() => {
+    starting = false;
+    sim.startRun(
+      {
+        onHud: (h) => hud.update(h),
+        onQuestion: (gq, tutorial) => hud.question(gq, tutorial),
+        onGateResult: (chosen, correctLane, correct) => hud.gateResult(chosen, correctLane, correct),
+        onEnd: (result) => finish(result, nickname),
+      },
+      dish,
+    );
   });
 }
 
@@ -91,6 +123,7 @@ function finish(result: RunResult, nickname: string): void {
     wrong: result.wrong,
     gates: result.gates,
     duration_ms: result.duration_ms,
+    dish: result.dish,
   });
   showResults(resultsScreen, result, runId, nickname, play);
 }

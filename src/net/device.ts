@@ -64,6 +64,12 @@ export const local = {
   set nickname(v: string | null) {
     if (v) setItem('prism.nickname', v);
   },
+  get dish(): string | null {
+    return getItem('prism.dish');
+  },
+  set dish(v: string | null) {
+    if (v) setItem('prism.dish', v);
+  },
   get voted(): boolean {
     return getItem('prism.voted') === '1';
   },

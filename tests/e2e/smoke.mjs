@@ -66,7 +66,7 @@ const startBot = () =>
       const s = window.__prism;
       const d = s.debugState();
       if (d.mode !== 'run') return;
-      const near = d.obstacles.filter((o) => o.y > d.playerY - 140 && o.y < d.playerY + 20).map((o) => o.lane);
+      const near = d.obstacles.filter((o) => o.d < 140 && o.d > -20).map((o) => o.lane);
       let target = d.gateLane ?? d.lane;
       if (near.includes(target)) target = [d.lane, 1, 0, 2].find((l) => !near.includes(l)) ?? target;
       if (target === d.lane) return;
@@ -141,6 +141,9 @@ try {
   // 5. Results beats, in order.
   const beat = () => page.getAttribute('#screen-results .beat', 'data-beat');
   await page.click('#next');
+  assert.equal(await beat(), 'recipe');
+  assert.equal(await page.locator('.recipe-list li').count(), 8);
+  await page.click('#next');
   assert.equal(await beat(), 'vote');
   await page.check('#vote');
   await until(async () => (await page.textContent('#screen-results')).includes('Bonus applied'), 5000, 'vote bonus');
@@ -167,7 +170,7 @@ try {
   const code = (await page.textContent('#redeem .code')).trim();
   assert.match(code, /^[A-Z2-9]{5}$/);
   assert.match(await page.textContent('#redeem'), /Test tote bag/);
-  step(`results beats in order: score, vote, cited answer, pain points, email, spin (won code ${code})`);
+  step(`results beats in order: score, recipe, vote, cited answer, pain points, email, spin (won code ${code})`);
   await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/redeem.png` : 'tests/e2e/.last-redeem.png' });
 
   // 6. Play again is one tap.
@@ -221,6 +224,30 @@ try {
   await board.waitForFunction(() => document.querySelectorAll('.row').length === 0, null, { timeout: 5000 });
   step('admin: deleted runs vanish from the live board within the polling interval');
   if (process.env.SHOT_DIR) await admin.screenshot({ path: `${process.env.SHOT_DIR}/admin.png` });
+
+  // 9. A perfect run serves the dish: 8 steps recovered ends the run as a win.
+  //    The bot is kept shielded so obstacles cannot end the run first.
+  const winner = await browser.newPage({ ...devices['Pixel 5'] });
+  winner.on('pageerror', (e) => errors.push(e.message));
+  await winner.goto(`${WEB}/`);
+  await winner.click('[data-dish="laksa"]');
+  await winner.click('#play', { force: true });
+  await winner.evaluate(() => {
+    setInterval(() => {
+      const s = window.__prism;
+      const d = s.debugState();
+      if (d.mode !== 'run') return;
+      s.hasShield = true;
+      if (d.gateLane !== null && d.gateLane !== d.lane) s.move(d.gateLane > d.lane ? 1 : -1);
+    }, 50);
+  });
+  await winner.waitForFunction(() => !document.getElementById('screen-results').hidden, null, { timeout: 120000 });
+  assert.match(await winner.textContent('#screen-results h2'), /DISH SERVED/);
+  assert.match(await winner.textContent('#screen-results'), /Ah Ma's Laksa/);
+  assert.equal((await winner.evaluate(() => window.__prism.debugState())).recovered, 8);
+  await winner.click('#next');
+  assert.equal(await winner.locator('.recipe-list li.got').count(), 8);
+  step('a perfect run recovers all 8 steps: DISH SERVED, full recipe decoded');
 
   assert.deepEqual(errors, [], 'no uncaught page errors');
   console.log('\nAll end-to-end checks passed.');

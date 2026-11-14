@@ -1,131 +1,131 @@
 {
-  "_comment": "// DRAFT: needs human accuracy review",
+  "_comment": "// DRAFT: needs human accuracy review. Hybrid theme: Ah Ma's recipe as a stand-in for undocumented code.",
   "questions": [
     {
       "id": "pvf-01",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "Colleague left. No docs. Fastest way in?",
+      "q": "Ah Ma's gone. Her recipe has no notes. Fastest way?",
       "answers": [
-        "Read all 200 files",
+        "Guess every ingredient",
         "Ask PRISM in plain English",
-        "Wait for a reply email"
+        "Wait for a sign"
       ],
       "correct": 1,
-      "explain": "PRISM answers in plain English and cites the file and line, so you skip the 200-file hunt.",
-      "citation": "queue_manager.py · line 42"
+      "explain": "PRISM reads the whole recipe book and answers in plain English, just like it does for code nobody documented.",
+      "citation": "ahma_recipes/index.md · line 1"
     },
     {
       "id": "pvf-02",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "New system landed on your desk. First move?",
+      "q": "You inherited the stall. First move?",
       "answers": [
         "Panic quietly",
         "Ask PRISM how it works",
-        "Print all the code"
+        "Cook everything at once"
       ],
       "correct": 1,
-      "explain": "Start by asking. PRISM gives you the big picture in minutes and shows where each part lives.",
-      "citation": "app.py · line 12"
+      "explain": "Start by asking. PRISM gives you the big picture in minutes, whether it's a stall or a system.",
+      "citation": "stall_handbook.md · section 1"
     },
     {
       "id": "pvf-03",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "Boss asks how the code works. You?",
+      "q": "Customer asks what's in the chilli. You?",
       "answers": [
         "Guess and hope",
         "Ask PRISM, get sources",
         "Change the subject"
       ],
       "correct": 1,
-      "explain": "PRISM explains what the code does and points to the lines that prove it.",
-      "citation": "order_flow.py · line 27"
+      "explain": "PRISM answers and points to the exact line it read, so your answer holds up. Same for questions about code.",
+      "citation": "chicken_rice.md · line 22"
     },
     {
       "id": "pvf-04",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "The only expert is on leave. Now what?",
+      "q": "Only Uncle knows the sauce. He's away. Now what?",
       "answers": [
-        "Call them on holiday",
+        "Call him on holiday",
         "Ask PRISM instead",
-        "Wait three weeks"
+        "Close the stall"
       ],
       "correct": 1,
-      "explain": "The knowledge is in the code. PRISM reads it for you, so nobody is a bottleneck.",
-      "citation": "stall_registry.py · line 64"
+      "explain": "When the only expert is away, PRISM still knows what the notes say. No more single point of failure.",
+      "citation": "sauces.md · line 64"
     },
     {
       "id": "pvf-05",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "Nobody remembers why this rule exists. Quickest answer?",
+      "q": "Nobody knows why Ah Ma adds sugar. Quickest answer?",
       "answers": [
         "Ask PRISM about it",
-        "Search old emails",
-        "Delete the rule"
+        "Search old letters",
+        "Just leave it out"
       ],
       "correct": 0,
-      "explain": "PRISM finds the rule in the code and explains what it does, with the source to check.",
-      "citation": "queue_rules.py · line 103"
+      "explain": "Ask PRISM why a step exists and it shows the line that explains it, before you delete a rule that matters.",
+      "citation": "char_kway_teow.md · line 31"
     },
     {
       "id": "pvf-06",
       "type": "pain_vs_fix",
       "tier": 2,
-      "q": "Need to understand a system by Friday?",
+      "q": "Opening day is Friday. Need the whole recipe?",
       "answers": [
         "Skim and guess",
         "Ask PRISM targeted questions",
-        "Book ten meetings"
+        "Book ten cooking classes"
       ],
       "correct": 1,
-      "explain": "A few clear questions to PRISM get you understanding in minutes, not weeks.",
-      "citation": "README_generated.md · section 2"
+      "explain": "Targeted questions get you up to speed in days, not months, in a kitchen or a codebase.",
+      "citation": "stall_handbook.md · section 2"
     },
     {
       "id": "pvf-07",
       "type": "pain_vs_fix",
       "tier": 2,
-      "q": "Handover notes are two years old. Best check?",
+      "q": "Ah Ma's notes are from 1998. Best check?",
       "answers": [
         "Trust the old notes",
-        "Ask PRISM about today's code",
+        "Ask PRISM what's current",
         "Rewrite everything"
       ],
       "correct": 1,
-      "explain": "PRISM answers from the code as it is now, not from notes that have gone stale.",
-      "citation": "payment_service.py · line 58"
+      "explain": "Old handover notes go stale. PRISM reads what's actually there today, recipe or code.",
+      "citation": "laksa.md · line 58"
     },
     {
       "id": "pvf-08",
       "type": "pain_vs_fix",
       "tier": 2,
-      "q": "Docs and code disagree. What settles it?",
+      "q": "Her notebook and her tin label disagree. Who's right?",
       "answers": [
-        "The older document",
-        "PRISM citing the code",
-        "The loudest opinion"
+        "The older note",
+        "PRISM citing both sources",
+        "The loudest auntie"
       ],
       "correct": 1,
-      "explain": "The code is what actually runs. PRISM cites it, so you can settle it by looking.",
-      "citation": "discount_rules.py · line 31"
+      "explain": "When docs and code disagree, PRISM shows you what each says and where, so you can settle it.",
+      "citation": "laksa.md · line 31"
     },
     {
       "id": "pvf-09",
       "type": "pain_vs_fix",
       "tier": 3,
-      "q": "Small change needed. Unsure what it affects?",
+      "q": "Want less salt. Unsure what it affects?",
       "answers": [
         "Change it and pray",
         "Ask PRISM what uses it",
-        "See who shouts first"
+        "See who complains"
       ],
       "correct": 1,
-      "explain": "PRISM shows where a piece of code is used, so you know the impact before you touch it.",
-      "citation": "queue_manager.py · line 141"
+      "explain": "Before changing one ingredient, ask PRISM which steps depend on it, just like checking what a code change affects.",
+      "citation": "chicken_rice.md · line 41"
     },
     {
       "id": "bq-01",
@@ -133,13 +133,13 @@
       "tier": 1,
       "q": "Which question should you ask PRISM?",
       "answers": [
-        "Code?",
-        "Where is late fee calculated?",
-        "Explain everything."
+        "Food?",
+        "Where's the chilli ratio written?",
+        "Explain cooking."
       ],
       "correct": 1,
-      "explain": "A clear, specific question gets a clear, specific answer with a source.",
-      "citation": "fees.py · line 88"
+      "explain": "Specific questions get specific, cited answers, about recipes or about code.",
+      "citation": "chicken_rice.md · line 88"
     },
     {
       "id": "bq-02",
@@ -147,13 +147,13 @@
       "tier": 1,
       "q": "Which question gets a useful answer?",
       "answers": [
-        "Stuff broken?",
-        "How are queue numbers assigned?",
+        "Stuff tastes off?",
+        "How long is the poach?",
         "Tell me things."
       ],
       "correct": 1,
-      "explain": "Name the thing you want to understand. PRISM does the searching.",
-      "citation": "queue_manager.py · line 42"
+      "explain": "Ask about one step and PRISM points to the exact line. Vague in, vague out.",
+      "citation": "chicken_rice.md · line 42"
     },
     {
       "id": "bq-03",
@@ -161,41 +161,41 @@
       "tier": 2,
       "q": "Which question is clearest?",
       "answers": [
-        "Why slow?",
-        "What happens after an order?",
+        "Why bland?",
+        "What happens after frying rempah?",
         "Fix it."
       ],
       "correct": 1,
-      "explain": "Asking about one step in plain English lets PRISM walk you through it.",
-      "citation": "order_flow.py · line 19"
+      "explain": "A clear question about one step gets a clear answer, with its source.",
+      "citation": "laksa.md · line 19"
     },
     {
       "id": "bq-04",
       "type": "best_question",
       "tier": 2,
-      "q": "You want to understand refunds. Ask PRISM:",
+      "q": "You want to master the rice. Ask PRISM:",
       "answers": [
-        "Refunds?",
-        "How is a refund approved?",
-        "Is the code good?"
+        "Rice?",
+        "How is the rice cooked?",
+        "Is this recipe good?"
       ],
       "correct": 1,
-      "explain": "Ask how something is done. PRISM explains the steps and cites each one.",
-      "citation": "refunds.py · line 22"
+      "explain": "Name the thing you care about and PRISM traces every step that touches it.",
+      "citation": "chicken_rice.md · line 22"
     },
     {
       "id": "bq-05",
       "type": "best_question",
       "tier": 2,
-      "q": "Best way to ask about a figure?",
+      "q": "Best way to ask about a measurement?",
       "answers": [
-        "Numbers?",
-        "How is this total calculated?",
-        "Why maths?"
+        "Amounts?",
+        "How much belacan goes in?",
+        "Why measure?"
       ],
       "correct": 1,
-      "explain": "Ask how the figure is calculated and PRISM traces it back to the code.",
-      "citation": "billing.py · line 76"
+      "explain": "Ask exactly what you need and PRISM shows where the number comes from, like tracing a calculation in code.",
+      "citation": "laksa.md · line 76"
     },
     {
       "id": "bq-06",
@@ -204,12 +204,12 @@
       "q": "Which question will PRISM answer best?",
       "answers": [
         "Everything about everything",
-        "Which file sends receipts?",
+        "Which step needs the wok?",
         "Help"
       ],
       "correct": 1,
-      "explain": "One focused question beats one giant one. You can always ask a follow-up.",
-      "citation": "receipt_sender.py · line 9"
+      "explain": "Focused questions find the right page fast. 'Everything' finds nothing in particular.",
+      "citation": "char_kway_teow.md · line 9"
     },
     {
       "id": "bq-07",
@@ -222,7 +222,7 @@
         "In secret code words"
       ],
       "correct": 0,
-      "explain": "Plain English, one thing at a time. No special syntax needed.",
+      "explain": "One clear question at a time gets the sharpest answer.",
       "citation": "PRISM user guide · tips"
     },
     {
@@ -231,13 +231,13 @@
       "tier": 3,
       "q": "Which question is most specific?",
       "answers": [
-        "How does it work?",
-        "What does the code do?",
-        "When are queue numbers skipped?"
+        "How do I cook?",
+        "What does Ah Ma do?",
+        "When do cockles go in?"
       ],
       "correct": 2,
-      "explain": "The more specific the question, the more precise the answer and its citation.",
-      "citation": "queue_manager.py · line 117"
+      "explain": "The most specific question gets the most useful, checkable answer.",
+      "citation": "char_kway_teow.md · line 17"
     },
     {
       "id": "bq-09",
@@ -250,8 +250,8 @@
         "Repeat it louder"
       ],
       "correct": 1,
-      "explain": "Follow up like a conversation. PRISM narrows down and cites the exact spot.",
-      "citation": "order_flow.py · line 63"
+      "explain": "Follow-ups narrow it down, like zooming from the whole recipe to one step, or from a system to one file.",
+      "citation": "laksa.md · line 63"
     },
     {
       "id": "ta-01",
@@ -259,13 +259,13 @@
       "tier": 1,
       "q": "Which answer can you trust?",
       "answers": [
-        "\"Probably in utils\"",
-        "\"queue_manager.py, line 42\"",
-        "\"Ask Bob\""
+        "\"Probably in the drawer\"",
+        "\"laksa.md, line 42\"",
+        "\"Ask Auntie Mei\""
       ],
       "correct": 1,
-      "explain": "An answer that names the file and line can be checked in seconds.",
-      "citation": "queue_manager.py · line 42"
+      "explain": "An answer with an exact source is one you can check yourself.",
+      "citation": "laksa.md · line 42"
     },
     {
       "id": "ta-02",
@@ -274,12 +274,12 @@
       "q": "Which answer can you check yourself?",
       "answers": [
         "\"Trust me\"",
-        "\"See fees.py, line 88\"",
-        "\"It just works\""
+        "\"See sauces.md, line 88\"",
+        "\"It just tastes right\""
       ],
       "correct": 1,
-      "explain": "A citation turns \"trust me\" into \"see for yourself\".",
-      "citation": "fees.py · line 88"
+      "explain": "A cited answer lets you open the page and see for yourself, same as a file and line in code.",
+      "citation": "sauces.md · line 88"
     },
     {
       "id": "ta-03",
@@ -292,7 +292,7 @@
         "To fill space"
       ],
       "correct": 1,
-      "explain": "Every PRISM answer points to its source, so you never have to take it on faith.",
+      "explain": "Sources let you verify every answer, so you never have to take it on faith.",
       "citation": "PRISM user guide · citations"
     },
     {
@@ -306,7 +306,7 @@
         "Always wrong"
       ],
       "correct": 1,
-      "explain": "Without a source it may be right, but you cannot tell. PRISM gives you the source.",
+      "explain": "No source means you can't check it yet. Treat it as a claim.",
       "citation": "PRISM user guide · citations"
     },
     {
@@ -316,54 +316,54 @@
       "q": "Two answers sound right. Which do you trust?",
       "answers": [
         "The confident one",
-        "The one citing code",
+        "The one citing the recipe",
         "The longer one"
       ],
       "correct": 1,
-      "explain": "Confidence is not evidence. A citation is.",
-      "citation": "discount_rules.py · line 31"
+      "explain": "Confidence isn't evidence. The one that cites its source wins.",
+      "citation": "char_kway_teow.md · line 31"
     },
     {
       "id": "ta-06",
       "type": "trust_answer",
       "tier": 3,
-      "q": "PRISM cites a file and line. Why useful?",
+      "q": "PRISM cites a page and line. Why useful?",
       "answers": [
         "Looks official",
         "You can open it",
         "Makes answers longer"
       ],
       "correct": 1,
-      "explain": "You can open the cited line and confirm the answer yourself.",
-      "citation": "billing.py · line 76"
+      "explain": "You can jump straight to the line and read it yourself, in the recipe book or in the code.",
+      "citation": "chicken_rice.md · line 76"
     },
     {
       "id": "ta-07",
       "type": "trust_answer",
       "tier": 3,
-      "q": "Which reply would satisfy an auditor?",
+      "q": "Health inspector asks how you store chicken. Best reply?",
       "answers": [
         "\"I think so\"",
-        "\"Rule is in tax_rules.py\"",
+        "\"Step 4, chicken_rice.md\"",
         "\"Everyone knows that\""
       ],
       "correct": 1,
-      "explain": "Auditors need evidence. PRISM points to where the rule is written.",
-      "citation": "tax_rules.py · line 54"
+      "explain": "Inspectors and auditors want sources. PRISM gives you the exact step to show them.",
+      "citation": "chicken_rice.md · line 54"
     },
     {
       "id": "ta-08",
       "type": "trust_answer",
       "tier": 3,
-      "q": "The answer cites a file. Smart next step?",
+      "q": "The answer cites a step. Smart next move?",
       "answers": [
-        "Assume it is wrong",
+        "Assume it's wrong",
         "Open the cited line",
         "Ask it again"
       ],
       "correct": 1,
-      "explain": "Citations are there to be used. One look confirms the answer.",
-      "citation": "refunds.py · line 22"
+      "explain": "Open the cited line and check it. That's the whole point of sources.",
+      "citation": "sauces.md · line 22"
     },
     {
       "id": "ta-09",
@@ -372,40 +372,40 @@
       "q": "Which answer is easiest to double-check?",
       "answers": [
         "A detailed guess",
-        "One with file and line",
-        "A colleague's memory"
+        "One with page and line",
+        "A cousin's memory"
       ],
       "correct": 1,
-      "explain": "A file and line number is the shortest path to checking an answer.",
-      "citation": "payment_service.py · line 58"
+      "explain": "A page and line beats any memory: you can check it in seconds.",
+      "citation": "laksa.md · line 58"
     },
     {
       "id": "wn-01",
       "type": "who_needs",
       "tier": 1,
-      "q": "Auditor asks how a figure is calculated. Who helps?",
+      "q": "Auditor asks how your prices are calculated. Who helps?",
       "answers": [
         "A guess",
         "PRISM, with citations",
         "Nobody"
       ],
       "correct": 1,
-      "explain": "PRISM explains the calculation and cites the code behind it.",
-      "citation": "billing.py · line 76"
+      "explain": "PRISM explains how a figure is worked out and cites where, for stall prices or for code.",
+      "citation": "stall_prices.md · line 76"
     },
     {
       "id": "wn-02",
       "type": "who_needs",
       "tier": 1,
-      "q": "New hire on day one. What speeds them up?",
+      "q": "New helper starts today. What gets them cooking fastest?",
       "answers": [
-        "A 300-page manual",
+        "A 300-page binder",
         "Asking PRISM questions",
         "Good luck wishes"
       ],
       "correct": 1,
-      "explain": "New joiners ask PRISM in plain English and get up to speed in minutes.",
-      "citation": "README_generated.md · section 1"
+      "explain": "New starters ask PRISM in plain English and get productive in days, in a kitchen or on a codebase.",
+      "citation": "stall_handbook.md · section 1"
     },
     {
       "id": "wn-03",
@@ -413,69 +413,69 @@
       "tier": 1,
       "q": "Who can use PRISM?",
       "answers": [
-        "Only expert coders",
+        "Only expert chefs",
         "Anyone who can ask",
         "Only the IT team"
       ],
       "correct": 1,
-      "explain": "If you can ask a question in plain English, you can use PRISM.",
+      "explain": "If you can ask a question, you can use PRISM. No coding or cooking degree needed.",
       "citation": "PRISM user guide · getting started"
     },
     {
       "id": "wn-04",
       "type": "who_needs",
       "tier": 2,
-      "q": "Manager needs a quick system summary. Best source?",
+      "q": "Your sister wants a quick summary. Best source?",
       "answers": [
-        "Hallway gossip",
+        "Kopitiam gossip",
         "PRISM's plain-English answer",
-        "A 2015 slide deck"
+        "A 2005 photo album"
       ],
       "correct": 1,
-      "explain": "PRISM summarises what the system does today, in words anyone can follow.",
-      "citation": "app.py · line 12"
+      "explain": "PRISM gives a plain-English summary anyone can follow, for a recipe or for a system.",
+      "citation": "stall_handbook.md · section 2"
     },
     {
       "id": "wn-05",
       "type": "who_needs",
       "tier": 2,
-      "q": "Officer asks which rule the code applies?",
+      "q": "Customer asks: any peanuts in this? You?",
       "answers": [
         "Guess from memory",
-        "Ask PRISM, check the citation",
+        "Ask PRISM, check citation",
         "Avoid the question"
       ],
       "correct": 1,
-      "explain": "PRISM shows which rule the code applies and where, so you can confirm it.",
-      "citation": "tax_rules.py · line 54"
+      "explain": "When getting it wrong matters, check the cited source. Allergens or tax rules, same idea.",
+      "citation": "laksa.md · line 54"
     },
     {
       "id": "wn-06",
       "type": "who_needs",
       "tier": 2,
-      "q": "Team is taking over an old system. They need?",
+      "q": "Your cousins are taking over the stall. They need?",
       "answers": [
-        "More coffee",
+        "More kopi",
         "PRISM to explain it",
         "A time machine"
       ],
       "correct": 1,
-      "explain": "PRISM explains inherited systems so the new team is not starting from zero.",
-      "citation": "stall_registry.py · line 64"
+      "explain": "A team taking over something old needs it explained fast. PRISM does that for code too.",
+      "citation": "stall_handbook.md · line 64"
     },
     {
       "id": "wn-07",
       "type": "who_needs",
       "tier": 2,
-      "q": "Reviewer asks where a rule lives. You show:",
+      "q": "Inspector asks where a step is written. You show:",
       "answers": [
         "A rough sketch",
-        "PRISM's cited file and line",
+        "PRISM's cited page and line",
         "Your best guess"
       ],
       "correct": 1,
-      "explain": "PRISM answers \"where is this?\" with the exact file and line.",
-      "citation": "queue_rules.py · line 103"
+      "explain": "Show the exact page and line. Reviewers trust what they can check.",
+      "citation": "char_kway_teow.md · line 103"
     },
     {
       "id": "wn-08",
@@ -483,27 +483,27 @@
       "tier": 3,
       "q": "Who benefits when answers include sources?",
       "answers": [
-        "Only developers",
+        "Only chefs",
         "Anyone who must verify",
         "Nobody really"
       ],
       "correct": 1,
-      "explain": "Auditors, reviewers, managers and developers can all check a cited answer.",
+      "explain": "Anyone who has to stand behind an answer benefits from seeing its source.",
       "citation": "PRISM user guide · citations"
     },
     {
       "id": "wn-09",
       "type": "who_needs",
       "tier": 3,
-      "q": "Analyst must explain model results. What helps most?",
+      "q": "Food critic asks why it tastes smoky. What helps?",
       "answers": [
         "A hunch",
-        "PRISM tracing the calculation",
+        "PRISM tracing the steps",
         "Old meeting notes"
       ],
       "correct": 1,
-      "explain": "PRISM traces how a result is produced, step by step, with sources.",
-      "citation": "scoring_model.py · line 210"
+      "explain": "PRISM traces cause to effect across steps, like tracing how code produced a result.",
+      "citation": "char_kway_teow.md · line 21"
     }
   ]
 }

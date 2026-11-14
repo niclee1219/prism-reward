@@ -1,40 +1,61 @@
 import { RUN } from '../config';
 
 /**
- * Swipe left / right anywhere on the element to change lane.
- * A lane change fires as soon as the finger has travelled far enough,
- * without waiting for it to lift. A plain tap on the left or right half also works,
- * and arrow keys work for desktop testing.
+ * Turns one pointer gesture into at most one lane change.
+ * A swipe fires as soon as the finger has travelled far enough (no need to lift),
+ * but the rest of that same drag is ignored, so a long flick can never skip two lanes.
+ * A plain tap on the left or right half also moves one lane.
+ * Pure logic (no DOM), so it is unit-tested directly.
  */
-export function attachInput(el: HTMLElement, onMove: (dir: -1 | 1) => void): () => void {
-  let startX = 0;
-  let startY = 0;
-  let active = false;
-  let moved = false;
+export class SwipeTracker {
+  private startX = 0;
+  private startY = 0;
+  private active = false;
+  private fired = false;
 
-  const down = (e: PointerEvent) => {
-    active = true;
-    moved = false;
-    startX = e.clientX;
-    startY = e.clientY;
-  };
-  const move = (e: PointerEvent) => {
-    if (!active) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    if (Math.abs(dx) >= RUN.SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy)) {
-      onMove(dx > 0 ? 1 : -1);
-      moved = true;
-      startX = e.clientX; // a continued drag can trigger a second lane change
-      startY = e.clientY;
+  constructor(private minPx: number = RUN.SWIPE_MIN_PX) {}
+
+  down(x: number, y: number): void {
+    this.active = true;
+    this.fired = false;
+    this.startX = x;
+    this.startY = y;
+  }
+
+  /** Returns a direction the first time this gesture crosses the swipe threshold, else null. */
+  move(x: number, y: number): -1 | 1 | null {
+    if (!this.active || this.fired) return null;
+    const dx = x - this.startX;
+    const dy = y - this.startY;
+    if (Math.abs(dx) >= this.minPx && Math.abs(dx) > Math.abs(dy)) {
+      this.fired = true;
+      return dx > 0 ? 1 : -1;
     }
+    return null;
+  }
+
+  /** Returns a direction for a tap (little movement, no swipe), else null. `midX` splits left from right. */
+  up(x: number, y: number, midX: number): -1 | 1 | null {
+    const wasTap = this.active && !this.fired && Math.abs(x - this.startX) < 8 && Math.abs(y - this.startY) < 8;
+    this.active = false;
+    if (!wasTap) return null;
+    return x < midX ? -1 : 1;
+  }
+}
+
+/** Swipe or tap anywhere on the element to change lane; arrow keys work for desktop testing. */
+export function attachInput(el: HTMLElement, onMove: (dir: -1 | 1) => void): () => void {
+  const swipe = new SwipeTracker();
+
+  const down = (e: PointerEvent) => swipe.down(e.clientX, e.clientY);
+  const move = (e: PointerEvent) => {
+    const dir = swipe.move(e.clientX, e.clientY);
+    if (dir) onMove(dir);
   };
   const up = (e: PointerEvent) => {
-    if (active && !moved && Math.abs(e.clientX - startX) < 8 && Math.abs(e.clientY - startY) < 8) {
-      const r = el.getBoundingClientRect();
-      onMove(e.clientX < r.left + r.width / 2 ? -1 : 1);
-    }
-    active = false;
+    const r = el.getBoundingClientRect();
+    const dir = swipe.up(e.clientX, e.clientY, r.left + r.width / 2);
+    if (dir) onMove(dir);
   };
   const key = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft' || e.key === 'a') onMove(-1);

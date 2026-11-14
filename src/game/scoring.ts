@@ -35,7 +35,20 @@ export class ScoreKeeper {
     return multiplierFor(this.streak);
   }
 
+  /** Served-dish bonus, set once when the run ends as served. */
+  bonus = 0;
+  coins = 0;
+  coinPoints = 0;
+
+  /** Returns the points for one coin. */
+  coin(doubled: boolean): number {
+    const pts = SCORING.COIN_POINTS * (doubled ? SCORING.COIN_DOUBLE : 1);
+    this.coins++;
+    this.coinPoints += pts;
+    return pts;
+  }
+
   get score(): number {
-    return Math.floor(this.distance + this.answerPoints);
+    return Math.floor(this.distance + this.answerPoints) + this.coinPoints + this.bonus;
   }
 }

@@ -1,24 +1,28 @@
 # PRISM Run
 
-A mobile-web endless runner for the PRISM exhibition booth. Players scan a QR code, steer through three
-lanes, and answer question gates about why PRISM ("talk to your code, understand it in minutes") helps.
-A leaderboard, a spin wheel and a live booth screen make it competitive.
+**Ah Ma's Recipe**: a mobile-web 3D runner for the PRISM exhibition booth. You have inherited Ah Ma's hawker
+stall, and her recipe notes are as vague as undocumented code ("cook until it smells right"). Players scan a QR
+code, pick a dish (chicken rice, char kway teow or laksa), run through a hawker centre and answer question
+gates. Each correct answer decodes one recipe step with PRISM ("talk to your code, understand it in minutes").
+Decode all 8 and the dish is served: that is the win. A leaderboard, a spin wheel and a live booth screen make
+it competitive.
 
 - `/` the game (phone, portrait)
 - `/board` the booth TV leaderboard (landscape)
 - `/admin` the staff page (PIN-protected, phone-friendly)
 
-**Stack:** Vite + TypeScript + Phaser 3 on the front end; Supabase (Postgres + Edge Functions) on the back
+**Stack:** Vite + TypeScript + Three.js on the front end (game rules in a renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back
 end; static hosting on Cloudflare Pages.
 
-> **Before the event:** `src/content/questions.json` is a DRAFT. A human must review all 36 questions for
-> accuracy. The prizes seeded by the first migration are placeholders too.
+> **Before the event:** `src/content/questions.json` and the recipe steps in `src/content/dishes.ts` are
+> DRAFTS. A human must review all 36 questions and 24 recipe steps for accuracy. The prizes seeded by the first
+> migration are placeholders too.
 
 ---
 
 ## 1. Run it locally
 
-Needs Node 20+ and a local Postgres 14+ (only the `initdb`, `pg_ctl` and `psql` binaries).
+Needs Node 22+ (vitest 5 requires it) and a local Postgres 14+ (only the `initdb`, `pg_ctl` and `psql` binaries).
 
 ```bash
 npm install
@@ -46,7 +50,7 @@ Without `VITE_API_BASE` the game still plays; scores simply wait in the retry qu
 
 | Command | What it checks |
 |---|---|
-| `npm test` | Scoring, score cap, difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, sprite grids |
+| `npm test` | Scoring, score cap (incl. the served bonus), difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, `RunSim` (bot runs reach DISH SERVED, crashes, time-up, one lane per move, every honest run passes the server check), one lane per swipe, dish list in sync with the server |
 | `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, spin stock never negative under 50 parallel spins, code redeems once, admin PIN and lockout |
 | `npm run load-test` | 200 concurrent submissions, zero errors, leaderboard catches up within 2 s |
 | `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the six results beats in order, the board, and the admin actions |
@@ -89,8 +93,8 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
    supabase db push
    ```
 
-   (Or paste `supabase/migrations/0001_schema.sql` and then `0002_functions.sql` into the SQL editor. Both
-   files are safe to run more than once.)
+   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0004`. Each is
+   safe to run more than once.)
 
 3. Set the staff PIN:
 

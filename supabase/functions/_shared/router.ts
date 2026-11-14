@@ -20,6 +20,8 @@ export const LIMITS = {
   NICKNAME_MAX: 16,
 };
 
+/** Must match the check constraint in migration 0004 and src/content/dishes.ts. */
+export const DISH_IDS: unknown[] = ['chicken-rice', 'char-kway-teow', 'laksa'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -123,10 +125,12 @@ export async function handle(route: string, req: Request, deps: Deps): Promise<R
         // The score cap. Never trust anything else the client says about its result.
         const reason = implausibleReason(run);
         if (reason) return fail(deps, 'implausible', { reason });
+        // Optional (older clients send none); if present it must be a known dish.
+        if (body.dish != null && !DISH_IDS.includes(body.dish)) return fail(deps, 'bad_request');
         return reply(deps, await deps.rpc('prism_submit_run', {
           p_run_id: body.run_id, p_device_id: device, p_nickname: cleanNickname(body.nickname),
           p_score: run.score, p_correct: run.correct, p_wrong: run.wrong, p_gates: run.gates,
-          p_duration_ms: run.duration_ms, p_cooldown_s: LIMITS.COOLDOWN_S,
+          p_duration_ms: run.duration_ms, p_cooldown_s: LIMITS.COOLDOWN_S, p_dish: body.dish ?? null,
         }));
       }
       case 'spin':

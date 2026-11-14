@@ -1,7 +1,9 @@
 // The results flow: six short beats in a fixed order, one per screen.
+import { SCORING } from '../config';
+import { dishById } from '../content/dishes';
 import { PAIN_POINTS } from '../content/painpoints';
 import { QUESTIONS } from '../game/gateDirector';
-import type { RunResult } from '../game/RunScene';
+import type { RunResult } from '../game/sim/RunSim';
 import { ApiError, api, type RankInfo, type SpinResult, type SubmitResult } from '../net/api';
 import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
@@ -30,6 +32,7 @@ export function showResults(
   nickname: string,
   onPlayAgain: () => void,
 ): void {
+  const dish = dishById(run.dish);
   let outcome: Outcome | null = null;
   let server: SubmitResult | null = null;
   const outcomeWaiters: ((o: Outcome) => void)[] = [];
@@ -54,14 +57,31 @@ export function showResults(
 
   // --- beat 1: score, rank, confetti -----------------------------------------
   const beatScore = (b: HTMLElement) => {
-    b.append(el('h2', '', run.reason === 'timeup' ? "TIME'S UP!" : 'RUN OVER'));
+    const served = run.reason === 'served';
+    b.append(el('h2', '', served ? 'DISH SERVED!' : run.reason === 'timeup' ? "TIME'S UP!" : 'RUN OVER'));
+    const plate = el('div', `plate${served ? ' served' : ''}`);
+    plate.append(el('span', 'plate-emoji', dish.emoji), el('span', 'plate-name', served ? `Ah Ma's ${dish.name}` : dish.name));
+    const line = el(
+      'div',
+      'sub',
+      served
+        ? `All ${SCORING.RECIPE_STEPS} steps decoded. Ah Ma would be proud.`
+        : `Recovered ${run.recovered}/${SCORING.RECIPE_STEPS} steps. Ah Ma says: try again lah.`,
+    );
     const big = el('div', 'big-score', '0');
     big.id = 'final-score';
     const stats = el('div', 'stats');
     stats.append(el('span', '', `✔ ${run.correct}/${run.gates}`), el('span', '', `🔥 streak ${run.bestStreak}`));
+    if (run.coins) {
+      const coins = el('span', '', ` ${run.coins}`);
+      coins.prepend(el('i', 'coin')); // drawn coin: the coin emoji is missing on older phones
+      stats.append(coins);
+    }
+    if (run.bonus) stats.append(el('span', '', `🍽 +${run.bonus}`));
     const status = el('div', 'saving', 'Saving your score...');
     status.id = 'rank-status';
-    b.append(big, stats, status);
+    b.append(plate, line, big, stats, status);
+    if (served) confetti(root, 120);
 
     const t0 = performance.now();
     const tick = (now: number) => {
@@ -93,6 +113,23 @@ export function showResults(
       const top10 = r.rank !== null && r.rank <= 10;
       confetti(root, r.rank === 1 ? 220 : top10 && r.is_best ? 150 : 60);
     });
+  };
+
+  // --- beat 1b: the recipe, decoded ---------------------------------------------
+  const beatRecipe = (b: HTMLElement) => {
+    b.append(el('h2', '', run.recovered ? 'WHAT PRISM DECODED' : "AH MA'S NOTES"));
+    const list = el('ol', 'recipe-list');
+    dish.steps.forEach((s, i) => {
+      const got = i < run.recovered;
+      const li = el('li', got ? 'got' : 'locked');
+      li.append(el('span', 'r-emoji', got ? s.emoji : '🔒'));
+      const text = el('div', 'r-text');
+      text.append(el('div', 'r-note', `“${s.note}”`));
+      text.append(el('div', 'r-decoded', got ? `→ ${s.decoded}` : '→ ??? (answer more gates to decode)'));
+      li.append(text);
+      list.append(li);
+    });
+    b.append(list, el('p', 'sub', 'Vague notes are like code nobody documented. PRISM turns them into exact steps, with sources.'));
   };
 
   // --- beat 2: vote toggle ---------------------------------------------------
@@ -147,7 +184,7 @@ export function showResults(
     const strip = el('div', 'strip');
     for (const p of PAIN_POINTS) {
       const c = el('div', 'pain');
-      c.append(el('div', 'icon', p.icon), el('h3', '', p.title), el('div', 'p', p.pain), el('div', 'f', `→ ${p.fix}`));
+      c.append(el('div', 'icon', p.icon), el('h3', '', p.title), el('div', 'k', p.kitchen), el('div', 'p', p.pain), el('div', 'f', `→ ${p.fix}`));
       strip.append(c);
     }
     b.append(strip, el('div', 'hint-swipe', '◂ swipe for more ▸'));
@@ -253,6 +290,7 @@ export function showResults(
   type Beat = { id: string; build: (b: HTMLElement) => void; skip?: () => boolean };
   const beats: Beat[] = [
     { id: 'score', build: beatScore },
+    { id: 'recipe', build: beatRecipe },
     { id: 'vote', build: beatVote, skip: () => !server || !server.vote_bonus_enabled || server.voted || local.voted },
     { id: 'cite', build: beatCite },
     { id: 'pain', build: beatPain },

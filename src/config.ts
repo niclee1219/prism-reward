@@ -2,17 +2,31 @@
 // that the server also reads). Tune after playtests; nothing else should need editing.
 import { SCORING } from '../supabase/functions/_shared/scoring.ts';
 
-export { SCORING, multiplierFor, speedFactorAt, maxPlausibleScore } from '../supabase/functions/_shared/scoring.ts';
+export { SCORING, multiplierFor, speedFactorAt, maxPlausibleScore, servedBonus } from '../supabase/functions/_shared/scoring.ts';
 
 export const VIEW = {
-  /** Logical canvas width in pixels. The canvas is scaled up with crisp pixels. */
-  WIDTH: 180,
-  MIN_HEIGHT: 280,
-  MAX_HEIGHT: 400,
-  /** Width of each decorative side strip. Road = WIDTH - 2 * SIDE. */
-  SIDE: 18,
-  /** Distance of the player from the bottom of the canvas. */
-  PLAYER_FROM_BOTTOM: 64,
+  /** Stage height / width is clamped to this range so phones are not letterboxed. */
+  MIN_ASPECT: 1.55,
+  MAX_ASPECT: 2.25,
+  /** Cap on device pixel ratio for the 3D canvas (lowered further on slow devices). */
+  MAX_DPR: 2,
+  LOW_FX_DPR: 1,
+};
+
+/**
+ * The simulation measures depth as distance ahead of the player, in "units".
+ * One unit is one pixel of the old top-down game, so all speeds and intervals carry over.
+ */
+export const WORLD = {
+  /** Obstacle rows appear this far ahead (beyond the fog, so nothing pops in). */
+  SPAWN_DIST: 420,
+  /** Things are removed once they are this far behind the player. */
+  DESPAWN_DIST: -60,
+  /** A gate is answered when it is this close. */
+  GATE_HIT_DIST: 6,
+  /** World metres per unit of depth, and per lane, for the 3D renderer. */
+  M_PER_UNIT: 0.1,
+  LANE_M: 1.7,
 };
 
 export const RUN = {
@@ -24,7 +38,7 @@ export const RUN = {
   /** Lane-change tween length. */
   LANE_TWEEN_MS: 90,
   /** Minimum horizontal finger travel (CSS px) that counts as a swipe. */
-  SWIPE_MIN_PX: 22,
+  SWIPE_MIN_PX: 30,
 };
 
 export const GATES = {
@@ -51,6 +65,16 @@ export const GATES = {
   FIRE_STREAK: 3,
 };
 
+/** The serve cutscene, after the last recipe step. The score is already final when it starts. */
+export const SERVE = {
+  /** The runner dashes this far (units), easing to a stop at the customers' table... */
+  DASH_UNITS: 230,
+  /** ...over this many seconds. */
+  DASH_S: 1.8,
+  /** Whole cutscene, from the last answer to the results screen. */
+  TOTAL_MS: 4400,
+};
+
 export const OBSTACLES = {
   /** Seconds between obstacle rows at the start and at RAMP_S. */
   INTERVAL_START_S: 1.5,
@@ -64,13 +88,32 @@ export const OBSTACLES = {
   /** Keep this much travel time clear before / after a gate. */
   CLEAR_BEFORE_GATE_S: 0.55,
   CLEAR_AFTER_GATE_S: 0.3,
-  /** Collision half-sizes in logical pixels. */
-  HIT_HALF_W: 15,
-  HIT_HALF_H: 11,
+  /** Collision: depth window (units) and lateral overlap (lanes) that count as a hit. */
+  HIT_DEPTH: 22,
+  HIT_LANES: 0.46,
   /** Window after a lane change in which dodging counts as a near miss. */
   NEAR_MISS_MS: 320,
   NEAR_MISS_SLOWMO: 0.35,
   NEAR_MISS_SLOWMO_MS: 260,
+};
+
+export const PICKUPS = {
+  /** First coin line appears this early, so the very first seconds already pay out. */
+  FIRST_COINS_S: 1,
+  /** Gap between coins in a line, in depth units. */
+  COIN_SPACING: 22,
+  /** Pickup window: depth (units) and lateral reach (lanes). */
+  HIT_DEPTH: 16,
+  HIT_LANES: 0.55,
+  /** Tingkat (tiffin carrier) mystery box: first one, then every MIN..MAX seconds. */
+  TINGKAT_FIRST_S: 9,
+  TINGKAT_MIN_S: 9,
+  TINGKAT_MAX_S: 14,
+  /** Power-up lengths. */
+  DOUBLE_S: 8,
+  MAGNET_S: 8,
+  /** With the magnet on, coins this close (units) fly to the player from any lane. */
+  MAGNET_RANGE: 90,
 };
 
 export const JUICE = {
