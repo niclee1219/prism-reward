@@ -5,7 +5,7 @@ import pg from 'pg';
 import { handle, type Deps } from '../supabase/functions/_shared/router.ts';
 
 export const LOCAL_DB = process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54329/prism';
-const ROUTES = ['submit-run', 'leaderboard', 'spin', 'vote', 'email', 'admin'];
+const ROUTES = ['submit-run', 'leaderboard', 'spin', 'vote', 'email', 'admin', 'claim-name'];
 
 export function makeDeps(pool: pg.Pool, adminPin: string): Deps {
   return {

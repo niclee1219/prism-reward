@@ -26,7 +26,13 @@ export interface SubmitResult extends RankInfo {
   vote_bonus_enabled: boolean;
   vote_bonus_multiplier: number;
   voted: boolean;
+  is_new: boolean;
+  nickname: string;
   wheel: string[];
+}
+
+export async function claimName(deviceId: string, nickname: string): Promise<{ nickname: string; locked: boolean }> {
+  return api('/claim-name', { body: { device_id: deviceId, nickname } });
 }
 
 export interface LeaderboardResult {

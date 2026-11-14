@@ -1,4 +1,4 @@
-// The results flow: six short beats in a fixed order, one per screen.
+// The results flow: a handful of short beats in a fixed order, one per screen.
 import { SCORING } from '../config';
 import { dishById } from '../content/dishes';
 import { PAIN_POINTS } from '../content/painpoints';
@@ -9,6 +9,7 @@ import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
 import QRCode from 'qrcode';
 import { confetti } from './confetti';
+import { mountLeaderboard } from './leaderboard';
 import { Wheel } from './wheel';
 
 const FALLBACK_SEGMENT = 'Better luck next time + sticker';
@@ -88,6 +89,7 @@ export function showResults(
       const k = Math.min((now - t0) / 1100, 1);
       big.textContent = String(Math.floor(run.score * (1 - Math.pow(1 - k, 3))));
       if (k < 1 && big.isConnected) requestAnimationFrame(tick);
+      else big.classList.add('pop');
     };
     requestAnimationFrame(tick);
 
@@ -102,6 +104,10 @@ export function showResults(
       const box = el('div', 'beat');
       box.style.flex = 'none';
       box.id = 'rank-box';
+      if (r.is_best && r.is_new) {
+        big.classList.add('best');
+        box.append(el('div', 'badge-best', '✨ NEW PERSONAL BEST'));
+      }
       if (r.rank === 1) box.append(el('div', 'king', '👑 KING OF THE HILL'));
       else if (r.is_best && r.rank !== null && r.rank <= 10) box.append(el('div', 'king', '⭐ NEW TOP 10!'));
       box.append(el('div', 'rank', `You're #${r.rank}`));
@@ -112,6 +118,18 @@ export function showResults(
       status.replaceWith(box);
       const top10 = r.rank !== null && r.rank <= 10;
       confetti(root, r.rank === 1 ? 220 : top10 && r.is_best ? 150 : 60);
+    });
+  };
+
+  // --- beat 1a: the leaderboard, with the player's row highlighted --------------
+  const beatBoard = (b: HTMLElement) => {
+    b.append(el('h2', '', '🏆 LEADERBOARD'));
+    const body = el('div', 'lb-body');
+    b.append(body);
+    // Wait for this run to be saved so the new score shows up in the list.
+    body.append(el('div', 'saving', 'Updating the board...'));
+    whenOutcome(() => {
+      if (body.isConnected) mountLeaderboard(body);
     });
   };
 
@@ -290,6 +308,7 @@ export function showResults(
   type Beat = { id: string; build: (b: HTMLElement) => void; skip?: () => boolean };
   const beats: Beat[] = [
     { id: 'score', build: beatScore },
+    { id: 'board', build: beatBoard },
     { id: 'recipe', build: beatRecipe },
     { id: 'vote', build: beatVote, skip: () => !server || !server.vote_bonus_enabled || server.voted || local.voted },
     { id: 'cite', build: beatCite },
@@ -313,7 +332,7 @@ export function showResults(
     root.replaceChild(fresh, root.firstElementChild!);
     beats[index].build(fresh);
     dots.innerHTML = '';
-    beats.forEach((_, i) => dots.append(el('i', i <= index ? 'on' : '')));
+    beats.forEach((_, i) => dots.append(el('i', i < index ? 'on' : i === index ? 'on now' : '')));
   };
   next.addEventListener('click', go);
   go();

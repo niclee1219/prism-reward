@@ -53,15 +53,23 @@
         </p>
         <div class="dishes" id="dishes" role="group" aria-label="Choose your dish"></div>
         <p class="dish-blurb" id="dish-blurb"></p>
-        <label class="nick">
-          <span class="sr">Nickname</span>
-          <input id="nickname" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" />
-          <button type="button" id="reroll" aria-label="Suggest another nickname">🎲</button>
+        <label class="nick" id="nick-row">
+          <span class="sr">Your name</span>
+          <input id="nickname" maxlength="16" placeholder="Type your name" autocomplete="off" autocapitalize="words" spellcheck="false" />
+          <button type="button" id="reroll" aria-label="Pick a random name">🎲</button>
         </label>
+        <p class="nick-locked" id="nick-locked" hidden>Playing as <b id="nick-locked-name"></b></p>
+        <p class="nick-error" id="nick-error" role="alert" hidden></p>
         <button type="button" id="play" class="btn btn-big"><span>PLAY</span></button>
+        <div class="start-links">
+          <button type="button" id="open-board" class="link-btn">🏆 Leaderboard</button>
+          <button type="button" id="open-howto" class="link-btn">❓ How it works</button>
+        </div>
       </section>
 
       <section id="screen-results" class="screen" hidden></section>
+      <section id="screen-board" class="screen overlay" hidden></section>
+      <section id="screen-howto" class="screen overlay" hidden></section>
     </div>
     <div id="rotate"><div>📱<br />Turn your phone upright to play</div></div>
     <script type="module" src="/src/main.ts"></script>

@@ -6,9 +6,12 @@ import { suggestNickname } from './content/nicknames';
 import { attachInput } from './game/input';
 import { RunSim, type RunResult } from './game/sim/RunSim';
 import { World } from './game/three/World';
-import { local, uuid } from './net/device';
+import { ApiError, claimName } from './net/api';
+import { deviceId, local, uuid } from './net/device';
 import { enqueue, flush } from './net/submitQueue';
 import { Hud } from './ui/hud';
+import { showHowto } from './ui/howto';
+import { showLeaderboard } from './ui/leaderboard';
 import { showResults } from './ui/results';
 
 registerSW({ immediate: true });
@@ -40,8 +43,33 @@ const startScreen = $('screen-start');
 const resultsScreen = $('screen-results');
 const nickInput = $<HTMLInputElement>('nickname');
 
-nickInput.value = local.nickname ?? suggestNickname();
-$('reroll').addEventListener('click', () => (nickInput.value = suggestNickname()));
+const nickRow = $('nick-row');
+const nickLocked = $('nick-locked');
+const nickError = $('nick-error');
+
+// The name box starts empty so people can type their own; the dice fills in a random one.
+// Once a device has claimed a name it is locked and replays are one tap.
+function renderName(): void {
+  const locked = local.locked;
+  nickRow.hidden = !!locked;
+  nickLocked.hidden = !locked;
+  if (locked) $('nick-locked-name').textContent = locked;
+}
+function nameError(msg: string | null): void {
+  nickError.hidden = !msg;
+  nickError.textContent = msg ?? '';
+  nickRow.classList.remove('shake');
+  if (msg) {
+    void nickRow.offsetWidth; // restart the animation
+    nickRow.classList.add('shake');
+  }
+}
+renderName();
+nickInput.addEventListener('input', () => nameError(null));
+$('reroll').addEventListener('click', () => {
+  nickInput.value = suggestNickname();
+  nameError(null);
+});
 
 // Dish picker: three cards, the last choice is remembered.
 let dish: DishId = isDishId(local.dish) ? local.dish : DISHES[0].id;
@@ -71,17 +99,40 @@ document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).c
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
 
-function cleanNickname(): string {
-  const name = nickInput.value.replace(/\s+/g, ' ').trim().slice(0, NICKNAME_MAX);
-  return name || suggestNickname();
+function typedName(): string {
+  return nickInput.value.replace(/\s+/g, ' ').trim().slice(0, NICKNAME_MAX);
 }
 
 let starting = false;
 
-function play(): void {
+async function play(): Promise<void> {
   if (starting) return; // a double tap on PLAY must not start two countdowns
   starting = true;
-  const nickname = cleanNickname();
+  let nickname = local.locked;
+  if (!nickname) {
+    const typed = typedName();
+    if (!typed) {
+      nameError('Type a name, or tap the dice 🎲');
+      nickInput.focus();
+      starting = false;
+      return;
+    }
+    nickname = typed;
+    try {
+      const claimed = await claimName(deviceId(), typed);
+      nickname = claimed.nickname;
+      local.locked = nickname;
+      renderName();
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : 'network';
+      if (code === 'name_taken' || code === 'bad_name') {
+        nameError(code === 'name_taken' ? 'That name is taken. Try another or tap 🎲' : 'Please pick a different name');
+        starting = false;
+        return;
+      }
+      // Offline or the server is busy: play anyway. The name is claimed when the score is saved.
+    }
+  }
   local.nickname = nickname;
   nickInput.blur();
   // The start screen whooshes away instead of blinking out.
@@ -125,8 +176,11 @@ function finish(result: RunResult, nickname: string): void {
     duration_ms: result.duration_ms,
     dish: result.dish,
   });
-  showResults(resultsScreen, result, runId, nickname, play);
+  showResults(resultsScreen, result, runId, nickname, () => void play());
 }
 
-$('play').addEventListener('click', play);
+$('play').addEventListener('click', () => void play());
+$('open-board').addEventListener('click', () => showLeaderboard($('screen-board')));
+$('open-howto').addEventListener('click', () => showHowto($('screen-howto')));
+if (!local.seenHowto) showHowto($('screen-howto'));
 void flush(); // send anything left over from an earlier visit

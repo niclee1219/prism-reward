@@ -42,12 +42,29 @@ export function uuid(): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-export function deviceId(): string {
-  let id = getItem('prism.device');
-  if (!id) {
-    id = uuid();
-    setItem('prism.device', id);
+function readCookie(name: string): string | null {
+  try {
+    const m = document.cookie.split('; ').find((c) => c.startsWith(`${name}=`));
+    return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
+  } catch {
+    return null;
   }
+}
+
+function writeCookie(name: string, value: string): void {
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Lax`;
+  } catch {
+    /* cookies blocked */
+  }
+}
+
+/** The device's account id. Kept in localStorage and mirrored to a cookie, so clearing only one of them keeps the same account. */
+export function deviceId(): string {
+  let id = getItem('prism.device') ?? readCookie('prism.device');
+  if (!id) id = uuid();
+  setItem('prism.device', id);
+  writeCookie('prism.device', id);
   return id;
 }
 
@@ -63,6 +80,22 @@ export const local = {
   },
   set nickname(v: string | null) {
     if (v) setItem('prism.nickname', v);
+  },
+  /** The name this device has claimed. Once set it never changes. */
+  get locked(): string | null {
+    return getItem('prism.locked') ?? readCookie('prism.locked');
+  },
+  set locked(v: string | null) {
+    if (v) {
+      setItem('prism.locked', v);
+      writeCookie('prism.locked', v);
+    }
+  },
+  get seenHowto(): boolean {
+    return getItem('prism.howto') === '1';
+  },
+  set seenHowto(v: boolean) {
+    setItem('prism.howto', v ? '1' : '0');
   },
   get dish(): string | null {
     return getItem('prism.dish');

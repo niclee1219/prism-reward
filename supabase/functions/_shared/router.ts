@@ -37,6 +37,8 @@ const STATUS: Record<string, number> = {
   bonus_off: 409,
   run_id_taken: 409,
   implausible: 422,
+  name_taken: 409,
+  bad_name: 422,
 };
 
 function cors(deps: Deps): Record<string, string> {
@@ -79,6 +81,13 @@ export function cleanNickname(raw: unknown): string {
     .slice(0, LIMITS.NICKNAME_MAX)
     .trim();
   return s || 'Player';
+}
+
+/** Minimal blocklist for a public leaderboard; matched against the name with spaces/symbols removed. */
+const BLOCKED = ['fuck', 'shit', 'cunt', 'bitch', 'dick', 'cock', 'pussy', 'whore', 'slut', 'nigg', 'fag', 'rape', 'nazi', 'hitler', 'cb', 'knn', 'ccb', 'chibai'];
+export function isCleanName(name: string): boolean {
+  const flat = name.toLowerCase().replace(/[^a-z]/g, '');
+  return !BLOCKED.some((w) => (w.length <= 3 ? flat === w : flat.includes(w)));
 }
 
 const isDevice = (v: unknown): v is string => typeof v === 'string' && v.length >= 8 && v.length <= 64 && /^[\w-]+$/.test(v);
@@ -132,6 +141,11 @@ export async function handle(route: string, req: Request, deps: Deps): Promise<R
           p_score: run.score, p_correct: run.correct, p_wrong: run.wrong, p_gates: run.gates,
           p_duration_ms: run.duration_ms, p_cooldown_s: LIMITS.COOLDOWN_S, p_dish: body.dish ?? null,
         }));
+      }
+      case 'claim-name': {
+        const name = cleanNickname(body.nickname);
+        if (String(body.nickname ?? '').trim() === '' || !isCleanName(name)) return fail(deps, 'bad_name');
+        return reply(deps, await deps.rpc('prism_claim_name', { p_device_id: device, p_nickname: name }));
       }
       case 'spin':
         if (!UUID.test(String(body.run_id))) return fail(deps, 'bad_request');

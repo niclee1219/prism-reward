@@ -27,7 +27,7 @@ const admin = (action: string, body: unknown = {}, pin = PIN) => call('admin', b
 
 const device = () => `dev-${randomUUID()}`;
 const run = (over: Record<string, unknown> = {}) => ({
-  run_id: randomUUID(), device_id: device(), nickname: 'Kopi Peng',
+  run_id: randomUUID(), device_id: device(), nickname: `P${randomUUID().slice(0, 8)}`,
   score: 1500, correct: 6, wrong: 2, gates: 8, duration_ms: 60_000, ...over,
 });
 
@@ -217,14 +217,69 @@ describe('admin', () => {
     const tote = prizes.body.find((p: any) => p.name === 'Tote bag');
     expect((await admin('set-prize', { id: tote.id, stock: 0 })).body.ok).toBe(true);
     expect((await admin('set-prize', { id: tote.id, stock: -1 })).status).toBe(400);
-    const r = run();
+    const r = run({ nickname: 'Kopi Peng' });
     const sub = await call('submit-run', r);
     expect(sub.body.wheel).toEqual(['Kopi voucher', 'Better luck next time + sticker']);
 
     expect((await call('email', { device_id: r.device_id, email: 'not-an-email' })).status).toBe(400);
     expect((await call('email', { device_id: device(), email: 'a@b.sg' })).status).toBe(404);
     expect((await call('email', { device_id: r.device_id, email: 'a@b.sg', consent: true })).body.ok).toBe(true);
-    expect((await admin('export-emails')).body).toEqual([{ nickname: 'Kopi Peng', email: 'a@b.sg', updates_consent: true }]);
+    expect((await admin('export-emails')).body).toEqual([{ nickname: `P${randomUUID().slice(0, 8)}`, email: 'a@b.sg', updates_consent: true }]);
     expect((await admin('stats')).body).toMatchObject({ players: 1, valid_runs: 1, emails: 1 });
   });
 });
+
+describe('accounts and unique names', () => {
+  it('claims a name and locks it to the device', async () => {
+    const d = device();
+    const a = await call('claim-name', { device_id: d, nickname: 'Crispy Prata' });
+    expect(a.status).toBe(200);
+    expect(a.body).toEqual({ nickname: 'Crispy Prata', locked: true });
+    // Claiming again with a different name returns the locked one.
+    const again = await call('claim-name', { device_id: d, nickname: 'Something Else' });
+    expect(again.body).toEqual({ nickname: 'Crispy Prata', locked: true });
+  });
+
+  it('rejects a name already used, ignoring case and spacing', async () => {
+    await call('claim-name', { device_id: device(), nickname: 'Kaya Toast' });
+    const dup = await call('claim-name', { device_id: device(), nickname: '  kaya   TOAST ' });
+    expect(dup.status).toBe(409);
+    expect(dup.body.error).toBe('name_taken');
+  });
+
+  it('refuses an empty or blocked name', async () => {
+    expect((await call('claim-name', { device_id: device(), nickname: '   ' })).body.error).toBe('bad_name');
+    expect((await call('claim-name', { device_id: device(), nickname: 'big F u c k' })).body.error).toBe('bad_name');
+  });
+
+  it('lets only one of many parallel claims win a name', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 20 }, () => call('claim-name', { device_id: device(), nickname: 'Race Name' })),
+    );
+    expect(results.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(results.filter((r) => r.body.error === 'name_taken')).toHaveLength(19);
+  });
+
+  it('never renames a player when a run is submitted, and keeps scores on one account', async () => {
+    const d = device();
+    await call('claim-name', { device_id: d, nickname: 'First Name' });
+    const r1 = await call('submit-run', run({ device_id: d, nickname: 'Hacker Rename', score: 1000 }));
+    expect(r1.status).toBe(200);
+    expect(r1.body.nickname).toBe('First Name');
+    await pool.query(`update runs set created_at = now() - interval '11 seconds'`);
+    const r2 = await call('submit-run', run({ device_id: d, score: 2000 }));
+    expect(r2.body).toMatchObject({ total_players: 1, rank: 1 });
+    expect((await pool.query('select count(*)::int as n from players')).rows[0].n).toBe(1);
+    const lb = await call('leaderboard', undefined, { query: '?limit=5' });
+    expect(lb.body.top).toHaveLength(1);
+    expect(lb.body.top[0]).toMatchObject({ nickname: 'First Name', score: 2000 });
+  });
+
+  it('returns name_taken from submit-run for a new device using a taken name', async () => {
+    await call('claim-name', { device_id: device(), nickname: 'Taken Name' });
+    const r = await call('submit-run', run({ nickname: 'taken name' }));
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe('name_taken');
+  });
+});
+

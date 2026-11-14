@@ -4,13 +4,28 @@ import * as THREE from 'three';
 import type { ObstacleKind } from '../sim/RunSim';
 import { Builder, LANE_COLOURS, VC_MAT, bend, canvasTexture } from './build';
 
+// One rule, so hazards read at a glance: obstacles are COOL and DARK (steel, slate, navy),
+// angular, never glow, and always stand on a red warning pad with a red-and-black hazard
+// band. Collectibles are the opposite: warm, round, glowing and spinning (see PickupPool).
+const HAZARD_RED = '#d7322b';
+const HAZARD_BLACK = '#161622';
+
+/** Red warning pad on the floor under an obstacle, plus a red-and-black hazard band at its base. */
+function hazard(b: Builder, half: number, bandZ: number): void {
+  b.cyl(half + 0.25, half + 0.25, 0.012, HAZARD_RED, [0, 0.006, 0], 20);
+  const n = 6;
+  const w = (half * 2) / n;
+  for (let i = 0; i < n; i++) b.box(w, 0.14, 0.04, i % 2 ? HAZARD_BLACK : HAZARD_RED, [-half + w * (i + 0.5), 0.12, bandZ]);
+}
+
 function stools(): THREE.BufferGeometry {
   const b = new Builder();
-  // A wobbly stack of red plastic stools.
+  // A wobbly stack of dark slate plastic stools.
   for (let i = 0; i < 5; i++) {
-    b.cyl(0.26, 0.32, 0.42, i % 2 ? '#d62828' : '#e63946', [Math.sin(i * 1.7) * 0.04, 0.21 + i * 0.27, 0], 10);
+    b.cyl(0.26, 0.32, 0.42, i % 2 ? '#37474f' : '#455a64', [Math.sin(i * 1.7) * 0.04, 0.21 + i * 0.27, 0], 6);
   }
-  b.cyl(0.27, 0.27, 0.05, '#f07167', [0.04, 1.5, 0], 10);
+  b.cyl(0.27, 0.27, 0.05, '#263238', [0.04, 1.5, 0], 6);
+  hazard(b, 0.4, 0.34);
   return b.geometry();
 }
 
@@ -20,62 +35,67 @@ function trolley(): THREE.BufferGeometry {
   for (const x of [-0.45, 0.45]) for (const z of [-0.3, 0.3]) b.box(0.05, 1.3, 0.05, '#adb5bd', [x, 0.75, z]);
   for (let i = 0; i < 4; i++) {
     b.box(0.95, 0.04, 0.65, '#ced4da', [0, 0.35 + i * 0.3, 0]);
-    b.box(0.8, 0.06, 0.5, ['#2a9d8f', '#f4a261', '#457b9d', '#e63946'][i], [0, 0.4 + i * 0.3, 0]);
-    b.cyl(0.1, 0.07, 0.08, '#fff6e0', [0.15, 0.47 + i * 0.3, 0.05], 8); // a bowl left on a tray
+    b.box(0.8, 0.06, 0.5, ['#37474f', '#455a64', '#546e7a', '#263238'][i], [0, 0.4 + i * 0.3, 0]);
+    b.cyl(0.1, 0.07, 0.08, '#b0bec5', [0.15, 0.47 + i * 0.3, 0.05], 6); // a bowl left on a tray
   }
   for (const x of [-0.42, 0.42]) for (const z of [-0.28, 0.28]) b.cyl(0.07, 0.07, 0.05, '#212529', [x, 0.07, z], 8, [Math.PI / 2, 0, 0]);
   b.box(1.0, 0.06, 0.06, '#adb5bd', [0, 1.38, 0.32]); // handle
+  hazard(b, 0.55, 0.42);
   return b.geometry();
 }
 
 function wetFloor(): THREE.BufferGeometry {
   const b = new Builder();
-  // Yellow A-frame "CAUTION WET FLOOR" sign, plus a spilled puddle.
-  b.box(0.62, 1.05, 0.04, '#ffd60a', [0, 0.52, -0.18], [-0.32, 0, 0]);
-  b.box(0.62, 1.05, 0.04, '#ffd60a', [0, 0.52, 0.18], [0.32, 0, 0]);
-  b.box(0.36, 0.36, 0.02, '#1b1b2f', [0, 0.6, 0.215], [0.32, 0, 0]);
-  b.box(0.2, 0.2, 0.025, '#ffd60a', [0, 0.6, 0.22], [0.32, 0, 0]);
-  b.cyl(0.65, 0.65, 0.01, '#9ecae1', [0.1, 0.006, 0], 18);
+  // Dark A-frame "WET FLOOR" sign with a red warning panel (not yellow: yellow is for gold), plus a puddle.
+  b.box(0.62, 1.05, 0.04, '#263238', [0, 0.52, -0.18], [-0.32, 0, 0]);
+  b.box(0.62, 1.05, 0.04, '#263238', [0, 0.52, 0.18], [0.32, 0, 0]);
+  b.box(0.4, 0.4, 0.02, HAZARD_RED, [0, 0.6, 0.215], [0.32, 0, 0]);
+  b.box(0.22, 0.06, 0.025, '#ffffff', [0, 0.6, 0.22], [0.32, 0, 0]);
+  b.cyl(0.65, 0.65, 0.012, '#4f6d85', [0.1, 0.016, 0], 6);
+  hazard(b, 0.5, 0.4);
   return b.geometry();
 }
 
 function uncle(): THREE.BufferGeometry {
   const b = new Builder();
   // An uncle carrying a tray of bowls, facing the player.
-  const skin = '#c68b59';
-  b.box(0.2, 0.75, 0.22, '#6c757d', [-0.14, 0.38, 0]);
-  b.box(0.2, 0.75, 0.22, '#6c757d', [0.14, 0.38, 0]);
-  b.box(0.58, 0.7, 0.34, '#f8f9fa', [0, 1.1, 0]); // white singlet
-  b.sphere(0.24, '#f8f9fa', [0, 1.0, 0.12], [1.1, 1, 0.8]); // tummy
+  const skin = '#8d6446';
+  b.box(0.2, 0.75, 0.22, '#1f2430', [-0.14, 0.38, 0]);
+  b.box(0.2, 0.75, 0.22, '#1f2430', [0.14, 0.38, 0]);
+  b.box(0.58, 0.7, 0.34, '#33415c', [0, 1.1, 0]); // dark navy singlet
+  b.sphere(0.24, '#33415c', [0, 1.0, 0.12], [1.1, 1, 0.8]); // tummy
   b.box(0.36, 0.38, 0.34, skin, [0, 1.65, 0]);
   b.box(0.38, 0.1, 0.36, '#adb5bd', [0, 1.86, 0]); // grey hair
   b.box(0.14, 0.45, 0.14, skin, [-0.36, 1.2, 0.18], [-1.1, 0, 0]);
   b.box(0.14, 0.45, 0.14, skin, [0.36, 1.2, 0.18], [-1.1, 0, 0]);
-  b.box(0.8, 0.04, 0.5, '#2a9d8f', [0, 1.28, 0.38]); // tray
-  b.cyl(0.13, 0.09, 0.1, '#fff6e0', [-0.2, 1.35, 0.38], 10);
-  b.cyl(0.13, 0.09, 0.1, '#fff6e0', [0.18, 1.35, 0.42], 10);
-  b.cyl(0.06, 0.06, 0.16, '#7f5539', [0.02, 1.38, 0.28], 8); // kopi
+  b.box(0.8, 0.04, 0.5, '#546e7a', [0, 1.28, 0.38]); // tray
+  b.cyl(0.13, 0.09, 0.1, '#b0bec5', [-0.2, 1.35, 0.38], 6);
+  b.cyl(0.13, 0.09, 0.1, '#b0bec5', [0.18, 1.35, 0.42], 6);
+  b.cyl(0.06, 0.06, 0.16, '#37474f', [0.02, 1.38, 0.28], 6); // kopi
+  hazard(b, 0.45, 0.5);
   return b.geometry();
 }
 
-function cat(): THREE.BufferGeometry {
+function cat(fur = '#3a3f4b', stripe = '#242833', pad = true): THREE.BufferGeometry {
   const b = new Builder();
   // The hawker-centre cat, sitting in the way and not moving for anyone. (Big cat.)
-  b.sphere(0.36, '#f4a261', [0, 0.38, 0], [0.9, 1, 1.25]);
-  b.sphere(0.25, '#f4a261', [0, 0.82, 0.22]);
-  b.box(0.1, 0.16, 0.06, '#f4a261', [-0.13, 1.06, 0.22], [0, 0, 0.3]);
-  b.box(0.1, 0.16, 0.06, '#f4a261', [0.13, 1.06, 0.22], [0, 0, -0.3]);
-  b.box(0.06, 0.06, 0.02, '#1b1b2f', [-0.09, 0.86, 0.46]);
-  b.box(0.06, 0.06, 0.02, '#1b1b2f', [0.09, 0.86, 0.46]);
-  b.cyl(0.05, 0.07, 0.7, '#e76f51', [0.3, 0.3, -0.35], 6, [0.9, 0, -0.6]);
-  for (let i = 0; i < 3; i++) b.box(0.5, 0.05, 0.02, '#e76f51', [0, 0.5 + i * 0.12, 0.44 - i * 0.03]);
+  // On the street it is a dark grey cat so it reads as a hazard; the serve scene uses the ginger one.
+  b.sphere(0.36, fur, [0, 0.38, 0], [0.9, 1, 1.25]);
+  b.sphere(0.25, fur, [0, 0.82, 0.22]);
+  b.box(0.1, 0.16, 0.06, fur, [-0.13, 1.06, 0.22], [0, 0, 0.3]);
+  b.box(0.1, 0.16, 0.06, fur, [0.13, 1.06, 0.22], [0, 0, -0.3]);
+  b.box(0.06, 0.06, 0.02, pad ? '#e8f0ff' : '#1b1b2f', [-0.09, 0.86, 0.46]);
+  b.box(0.06, 0.06, 0.02, pad ? '#e8f0ff' : '#1b1b2f', [0.09, 0.86, 0.46]);
+  b.cyl(0.05, 0.07, 0.7, stripe, [0.3, 0.3, -0.35], 6, [0.9, 0, -0.6]);
+  for (let i = 0; i < 3; i++) b.box(0.5, 0.05, 0.02, stripe, [0, 0.5 + i * 0.12, 0.44 - i * 0.03]);
+  if (pad) hazard(b, 0.45, 0.55);
   return b.geometry();
 }
 
 const GEOMETRY: Record<ObstacleKind, () => THREE.BufferGeometry> = { stools, trolley, wetfloor: wetFloor, uncle, cat };
 
 /** The cat also turns up as a customer in the serve scene. */
-export const catGeometry = cat;
+export const catGeometry = () => cat('#f4a261', '#e76f51', false);
 
 export class ObstaclePool {
   private geoms = new Map<ObstacleKind, THREE.BufferGeometry>();
@@ -128,7 +148,7 @@ export class PickupPool {
 
     // Tingkat: three enamel tiers, steel bands, carry handle and a "?" tag.
     const t = new Builder();
-    const tiers = ['#e63946', '#2a9d8f', '#fff6e0'];
+    const tiers = ['#ff9f1c', '#ffbf47', '#ffe08a'];
     for (let i = 0; i < 3; i++) {
       t.cyl(0.32, 0.3, 0.26, tiers[i], [0, 0.15 + i * 0.29, 0], 16);
       t.cyl(0.33, 0.33, 0.04, '#ced4da', [0, 0.3 + i * 0.29, 0], 16);
@@ -155,7 +175,7 @@ export class PickupPool {
       kind === 'coin' ? new THREE.Mesh(this.coinGeom, this.coinMat) : new THREE.Mesh(this.tingkatGeom, VC_MAT);
     body.name = 'body';
     const glow = new THREE.Sprite(this.glowMat);
-    glow.scale.setScalar(kind === 'coin' ? 0.9 : 2.2);
+    glow.scale.setScalar(kind === 'coin' ? 1.2 : 2.6);
     glow.position.y = kind === 'coin' ? 0 : 0.6;
     g.add(glow, body);
     this.parent.add(g);

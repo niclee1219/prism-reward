@@ -121,12 +121,12 @@ export class World {
 
     this.scene.background = skyTexture();
     this.scene.fog = new THREE.Fog(HAZE, 18, 47);
-    // Dusk lighting: warm sky, violet bounce from the floor, a low sun ahead and a cool
-    // fill from behind the camera so the runner's back never goes dark.
-    this.scene.add(new THREE.HemisphereLight('#ffe1cc', '#5a3d8a', 2.0));
-    const sun = new THREE.DirectionalLight('#ffb070', 1.3);
-    sun.position.set(-2, 5, -8);
-    const fill = new THREE.DirectionalLight('#cfe0ff', 1.0);
+    // Midday lighting: bright blue-white sky light, warm pavement bounce, a high hard sun and a
+    // soft fill from behind the camera so the runner's back never goes dark.
+    this.scene.add(new THREE.HemisphereLight('#f4faff', '#cdbfa6', 2.1));
+    const sun = new THREE.DirectionalLight('#fff3d6', 1.9);
+    sun.position.set(-4, 12, -3);
+    const fill = new THREE.DirectionalLight('#e8f1ff', 0.8);
     fill.position.set(2, 6, 6);
     this.scene.add(
       sun, fill, this.centre.group, this.runner.group, this.serve.set, this.serve.dish, this.obstaclesRoot, this.pickupsRoot,
@@ -483,7 +483,6 @@ export class World {
         break;
       case 'perfectLine':
         this.rings.fire(laneX(this.sim.playerX), 0, '#ffd166', 4);
-        this.popAt(this.tmp.set(laneX(this.sim.playerX), 2.6, 0), `SAPU! ${e.count}/${e.count}`, '#ffd166', 24);
         buzz('near');
         break;
       case 'power': {

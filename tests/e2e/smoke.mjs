@@ -46,6 +46,8 @@ await db.query(`update config set value = 'true' where key in ('vote_bonus_enabl
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices['Pixel 5'] });
+// The first-visit "how it works" slides would cover PLAY, so mark them as seen.
+await ctx.addInitScript(() => localStorage.setItem('prism.howto', '1'));
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
@@ -228,9 +230,11 @@ try {
   // 9. A perfect run serves the dish: 8 steps recovered ends the run as a win.
   //    The bot is kept shielded so obstacles cannot end the run first.
   const winner = await browser.newPage({ ...devices['Pixel 5'] });
+  await winner.addInitScript(() => localStorage.setItem('prism.howto', '1'));
   winner.on('pageerror', (e) => errors.push(e.message));
   await winner.goto(`${WEB}/`);
   await winner.click('[data-dish="laksa"]');
+  await winner.click('#reroll'); // the name box starts empty; the dice fills a random name
   await winner.click('#play', { force: true });
   await winner.evaluate(() => {
     setInterval(() => {
