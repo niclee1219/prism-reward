@@ -9,9 +9,9 @@ import type { RunResult } from '../game/sim/RunSim';
 import { ApiError, api, type RankInfo, type SpinResult, type SubmitResult } from '../net/api';
 import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
-import QRCode from 'qrcode';
 import { confetti } from './confetti';
 import { mountLeaderboard } from './leaderboard';
+import { renderPrize } from './prize';
 import { Wheel } from './wheel';
 
 const FALLBACK_SEGMENT = 'Better luck next time + sticker';
@@ -351,12 +351,13 @@ export function showResults(
 
   // --- beat 6: spin wheel finale -----------------------------------------------
   const showPrize = (b: HTMLElement, r: SpinResult) => {
-    const earlier = local.prizes.filter((p) => p.code !== r.code);
     b.innerHTML = '';
     b.classList.add('prize-reveal');
-    b.append(el('h2', `headline ${r.prize_id ? 'served' : 'timeup'}`, r.prize_id ? 'YOU WON!' : 'SO CLOSE!'), redeemCard(r, nickname));
+    renderPrize(b, { code: r.code, name: r.prize_name, won_at: Date.now(), won: !!r.prize_id, nickname });
+    // Other prizes from earlier runs that the team has not handed over yet.
+    const earlier = local.unredeemed.filter((p) => p.code !== r.code);
     if (earlier.length) {
-      b.append(el('div', 'old-prizes', `Earlier codes: ${earlier.map((p) => `${p.code} (${p.name})`).join(', ')}`));
+      b.append(el('div', 'old-prizes', `Not collected yet: ${earlier.map((p) => `${p.code} (${p.name})`).join(', ')}`));
     }
   };
 
@@ -404,14 +405,10 @@ export function showResults(
       wheel.setSegments(r.segments);
       await wheel.spinTo(r.index);
       spun = r;
-      local.addPrize({ code: r.code, name: r.prize_name, won_at: Date.now() });
+      local.addPrize({ code: r.code, name: r.prize_name, won_at: Date.now(), won: !!r.prize_id, nickname });
       back.disabled = next.disabled = false;
       if (!b.isConnected) return;
-      msg.textContent = r.prize_name;
-      msg.className = 'msg landed-name';
-      // Let the winning segment flash for a beat before the card flips in.
-      await new Promise((res) => setTimeout(res, reducedMotion ? 200 : 1100));
-      if (!b.isConnected) return;
+      // Straight to the prize screen as soon as the wheel stops.
       if (r.prize_id) {
         confetti(root, 180);
         buzz('win');
@@ -494,24 +491,4 @@ export function showResults(
     else if (dx > 0) goBack();
   });
   go();
-}
-
-function redeemCard(r: SpinResult, nickname: string): HTMLElement {
-  const card = el('div', 'redeem');
-  card.id = 'redeem';
-  const live = el('div', 'live');
-  const clock = el('span');
-  live.append(el('i'), clock);
-  const tick = () => {
-    clock.textContent = `LIVE ${new Date().toLocaleTimeString('en-GB')}`;
-    if (card.isConnected || !clock.textContent) setTimeout(tick, 1000);
-  };
-  setTimeout(tick, 0);
-  clock.textContent = `LIVE ${new Date().toLocaleTimeString('en-GB')}`;
-  const small = el('small', '', `${nickname} · show this screen to booth staff`);
-  // QR of the code, so staff can scan it instead of typing (where their phone supports it).
-  const qr = el('canvas', 'qr');
-  void QRCode.toCanvas(qr, r.code, { width: 96, margin: 0, color: { dark: '#1b1b2f', light: '#fff6e0' } }).catch(() => qr.remove());
-  card.append(el('div', 'prize', r.prize_name), el('div', 'code', r.code), qr, live, small);
-  return card;
 }

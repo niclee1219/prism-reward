@@ -12,6 +12,7 @@ import { enqueue, flush } from './net/submitQueue';
 import { Hud } from './ui/hud';
 import { showHowto } from './ui/howto';
 import { showLeaderboard } from './ui/leaderboard';
+import { showPendingPrize } from './ui/prize';
 import { showResults } from './ui/results';
 
 registerSW({ immediate: true });
@@ -176,11 +177,20 @@ function finish(result: RunResult, nickname: string): void {
     duration_ms: result.duration_ms,
     dish: result.dish,
   });
-  showResults(resultsScreen, result, runId, nickname, () => void play());
+  showResults(resultsScreen, result, runId, nickname, () => {
+    syncPrizeButton();
+    void play();
+  });
 }
 
 $('play').addEventListener('click', () => void play());
 $('open-board').addEventListener('click', () => showLeaderboard($('screen-board')));
 $('open-howto').addEventListener('click', () => showHowto($('screen-howto')));
+// A prize the team has not marked done yet survives refreshes and replays; once done, it is gone for good.
+const myPrize = $('open-prize');
+const syncPrizeButton = () => (myPrize.hidden = local.unredeemed.length === 0);
+myPrize.addEventListener('click', () => showPendingPrize($('screen-prize'), syncPrizeButton));
+syncPrizeButton();
 if (!local.seenHowto) showHowto($('screen-howto'));
+else showPendingPrize($('screen-prize'), syncPrizeButton);
 void flush(); // send anything left over from an earlier visit

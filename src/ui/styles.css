@@ -421,9 +421,9 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
 #next { font-size: 21px; padding: 16px 22px; }
 
 /* headline: a sticker slapped on, coloured by how the run ended */
-#screen-results .beat > h2.headline { --c: var(--yellow); font: italic 900 40px/1 var(--sans); letter-spacing: 0.5px; color: var(--yellow); -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink), 0 0 26px var(--c); transform: rotate(-3deg); animation: stamp-in 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; }
-#screen-results .beat > h2.headline.crash { --c: var(--red); color: #ff8a8a; }
-#screen-results .beat > h2.headline.timeup { --c: var(--blue); color: var(--blue); }
+#screen-results .beat > h2.headline, .prize-pending > h2.headline { --c: var(--yellow); font: italic 900 40px/1 var(--sans); letter-spacing: 0.5px; color: var(--yellow); -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink), 0 0 26px var(--c); transform: rotate(-3deg); animation: stamp-in 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; }
+#screen-results .beat > h2.headline.crash, .prize-pending > h2.headline.crash { --c: var(--red); color: #ff8a8a; }
+#screen-results .beat > h2.headline.timeup, .prize-pending > h2.headline.timeup { --c: var(--blue); color: var(--blue); }
 @keyframes stamp-in { from { transform: rotate(-3deg) scale(2.4); opacity: 0; } }
 .plate { padding: 6px 14px; }
 .plate-emoji { font-size: 28px; }
@@ -538,3 +538,29 @@ input.switch:checked::after { transform: translateX(24px); }
 /* Confetti falls behind the cards, so the score and rank stay readable while it rains around them. */
 #screen-results > .confetti { z-index: 0; }
 #screen-results > :not(.confetti) { position: relative; z-index: 1; }
+
+/* ---------- prize screen: show the team, team holds DONE, REDEEMED stamp ---------- */
+.prize-screen .show-team { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 330px; padding: 10px 14px; border-radius: 14px; background: var(--yellow); color: var(--ink); font-size: 16px; text-align: left; box-shadow: 0 5px 0 #c7962f; }
+.prize-screen .show-team .megaphone { font-size: 28px; display: inline-block; animation: wiggle 1s ease-in-out infinite; }
+#screen-results .beat > .show-team, .prize-pending > .show-team { animation: rise 0.45s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards, nudge 1.6s 0.8s ease-in-out infinite; }
+@keyframes wiggle { 25% { transform: rotate(-14deg); } 75% { transform: rotate(10deg); } }
+@keyframes nudge { 50% { box-shadow: 0 5px 0 #c7962f, 0 0 26px 4px rgba(255, 209, 102, 0.7); } }
+.prize-screen .redeem { position: relative; overflow: hidden; }
+.prize-screen .redeem .stamp { position: absolute; left: 50%; top: 50%; padding: 4px 16px; border: 6px solid var(--red); border-radius: 10px; color: var(--red); font: italic 900 44px/1 var(--sans); letter-spacing: 2px; background: rgba(255, 246, 224, 0.82); transform: translate(-50%, -50%) rotate(-14deg); opacity: 0; pointer-events: none; }
+.prize-screen.is-redeemed .redeem .stamp { opacity: 1; animation: stamp-slam 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes stamp-slam { from { transform: translate(-50%, -50%) rotate(-14deg) scale(3); opacity: 0; } }
+.prize-screen.is-redeemed .redeem .code { text-decoration: line-through; opacity: 0.45; }
+.prize-screen.is-redeemed .redeem .qr, .prize-screen.is-redeemed .redeem .live, .prize-screen.is-redeemed .show-team { display: none; }
+.prize-screen .redeemed-msg { display: none; font-size: 17px; font-weight: 700; color: var(--green); }
+.prize-screen.is-redeemed .redeemed-msg { display: block; }
+.staff-done { position: relative; overflow: hidden; width: 100%; max-width: 330px; padding: 14px; border: 2px dashed rgba(255, 246, 224, 0.4); border-radius: 12px; background: var(--ink2); color: var(--cream); font: 700 14px var(--mono); letter-spacing: 0.05em; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+.staff-done span { position: relative; }
+.staff-done .fill { position: absolute; inset: 0; background: var(--green); transform-origin: left; transform: scaleX(0); }
+.staff-done.holding .fill { transform: scaleX(1); transition: transform 0.9s linear; }
+.staff-done.holding { color: var(--ink); border-color: var(--green); }
+.prize-link { border-color: var(--yellow); color: var(--yellow); animation: nudge-link 1.4s ease-in-out infinite; }
+@keyframes nudge-link { 50% { box-shadow: 0 0 14px rgba(255, 209, 102, 0.7); } }
+.prize-pending { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .prize-screen .show-team, .prize-screen .megaphone, .prize-link, .prize-screen .stamp { animation: none !important; }
+}

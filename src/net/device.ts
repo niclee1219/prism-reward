@@ -72,6 +72,9 @@ export interface WonPrize {
   code: string;
   name: string;
   won_at: number;
+  /** False for the consolation segment (sticker), true for a real prize. */
+  won?: boolean;
+  nickname?: string;
 }
 
 export const local = {
@@ -120,5 +123,24 @@ export const local = {
   },
   addPrize(p: WonPrize) {
     setJson('prism.prizes', [p, ...this.prizes.filter((x) => x.code !== p.code)].slice(0, 10));
+  },
+  /** Codes the PRISM team has marked as handed over. Kept in localStorage and a cookie, like the device id. */
+  get redeemed(): string[] {
+    const stored = getJson<string[]>('prism.redeemed', []);
+    const cookie = (readCookie('prism.redeemed') ?? '').split(',').filter(Boolean);
+    return [...new Set([...stored, ...cookie])];
+  },
+  markRedeemed(code: string) {
+    const all = [...new Set([code, ...this.redeemed])].slice(0, 20);
+    setJson('prism.redeemed', all);
+    writeCookie('prism.redeemed', all.join(','));
+  },
+  isRedeemed(code: string): boolean {
+    return this.redeemed.includes(code);
+  },
+  /** Prizes won on this device that have not been handed over yet, newest first. */
+  get unredeemed(): WonPrize[] {
+    const done = new Set(this.redeemed);
+    return this.prizes.filter((p) => !done.has(p.code));
   },
 };
