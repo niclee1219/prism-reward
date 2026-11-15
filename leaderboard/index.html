@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>PRISM Run · Leaderboard</title>
+  </head>
+  <body class="lb-page">
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <main class="stage" id="lb-stage">
+      <header class="top">
+        <h1 class="lb-logo">PRISM<span>RUN</span></h1>
+        <div class="top-mid">TOP 10 <i>·</i> HAWKER HEROES</div>
+        <div class="status" id="status">● CONNECTING</div>
+      </header>
+
+      <section class="list">
+        <ol class="rows" id="rows" aria-live="polite"></ol>
+      </section>
+
+      <aside class="side">
+        <div class="lb-king" id="king">
+          <div class="king-crown">👑</div>
+          <div class="king-label">CURRENT KING</div>
+          <div class="king-name" id="king-name">UNCLAIMED</div>
+          <div class="king-score" id="king-score">—</div>
+        </div>
+        <div class="target" id="target"><b id="target-big">BE FIRST</b><span id="target-small">on the board</span></div>
+        <div class="join">
+          <div class="qr-box"><canvas id="qr"></canvas></div>
+          <div class="join-text"><b>SCAN. RUN. SERVE.</b><span>Talk to your code.<br />Understand it in minutes.</span></div>
+        </div>
+        <div class="plays"><b id="plays">0</b><span>runs played</span></div>
+      </aside>
+
+      <footer class="ticker"><div class="ticker-track" id="ticker"></div></footer>
+    </main>
+
+    <div class="takeover" id="takeover" hidden>
+      <div class="rays"></div>
+      <div class="to-card">
+        <div class="to-kicker" id="to-kicker"></div>
+        <div class="to-title" id="to-title"></div>
+        <div class="to-name" id="to-name"></div>
+        <div class="to-score" id="to-score"></div>
+        <div class="to-sub" id="to-sub"></div>
+      </div>
+    </div>
+    <div class="flash" id="flash"></div>
+    <div class="hint" id="hint"></div>
+    <script type="module" src="/src/leaderboard/leaderboard.ts"></script>
+  </body>
+</html>

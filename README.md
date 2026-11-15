@@ -9,6 +9,7 @@ it competitive.
 
 - `/` the game (phone, portrait)
 - `/board` the booth TV leaderboard (landscape)
+- `/leaderboard` the high-energy laptop leaderboard: a full-screen show whenever someone makes the board for the first time, enters the top 10 or steals the crown (see below)
 - `/admin` the staff page (PIN-protected, phone-friendly)
 
 **Stack:** Vite + TypeScript + Three.js on the front end (game rules in a renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back
@@ -120,8 +121,28 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
 1. Create a Pages project from this repository.
 2. Build command `npm run build`, output directory `dist`.
 3. Add the three `VITE_*` variables above, then deploy.
-4. `/board` and `/admin` are real pages in the build, so no redirect rules are needed. `public/_headers`
+4. `/leaderboard`, `/board` and `/admin` are real pages in the build, so no redirect rules are needed. `public/_headers`
    sets long caching for hashed assets and no caching for the service worker.
+
+### The `/leaderboard` screen
+
+Meant to sit open on a laptop at the booth and pull people in. It polls the same `GET /leaderboard?limit=10`
+every 2 s and compares each snapshot with the last (`src/leaderboard/diff.ts`, unit-tested):
+
+| What happened | Show |
+|---|---|
+| First ever entry on an empty board | **FIRST BLOOD** takeover, siren, confetti cannons |
+| Someone takes #1 (new player or a climber) | **NEW KING** takeover, "X has been dethroned by N", crown shakes |
+| A player appears in the top 10 | **#N** takeover (silver "on the podium" style for #2 and #3), the bumped player is named |
+
+A row that is about to be announced shows as `??? INCOMING ???` and slams onto the board when its takeover ends.
+Events queue (and speed up when the queue is long), so a burst of players never leaves the room waiting.
+The side panel always says what it takes to get on ("BEAT 1,823" or "3 SPOTS OPEN"), and a ticker replays the latest moments.
+
+- `F` fullscreen, `M` mute. Browsers keep sound locked until the first click or key press, so click once after opening it.
+- The screen asks the browser to keep the display awake. Scores already on the board when it opens are not announced.
+- Preview with no backend: open `/leaderboard?demo`. `Space` adds a player, `K` adds one who takes the crown, `R` resets.
+- Honours `prefers-reduced-motion` (fewer particles, no shake).
 
 ## 5. Pre-event checklist
 
@@ -195,7 +216,7 @@ src/
   game/art/                pixel sprites as character grids, baked into one atlas at start-up
   ui/                      HUD, results beats, wheel, confetti
   net/submitQueue.ts       localStorage queue with backoff: a finished run is never lost
-  board/  admin/           the other two pages
+  board/  leaderboard/  admin/   the other pages
 supabase/
   migrations/              tables, leaderboard view, SQL functions
   functions/_shared/       router.ts (all endpoint logic), scoring.ts (shared with the client)

@@ -1,6 +1,15 @@
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Connect } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+// Cloudflare Pages serves /leaderboard from leaderboard/index.html; make dev and preview do the same
+// instead of falling back to the game's index.html.
+const PAGES = ['/leaderboard', '/board', '/admin'];
+const pretty: Connect.NextHandleFunction = (req, _res, next) => {
+  const [path, query = ''] = (req.url ?? '').split('?');
+  if (PAGES.includes(path)) req.url = `${path}/index.html${query ? `?${query}` : ''}`;
+  next();
+};
 
 export default defineConfig({
   build: {
@@ -10,6 +19,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         board: resolve(__dirname, 'board/index.html'),
+        leaderboard: resolve(__dirname, 'leaderboard/index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
       },
     },
@@ -23,6 +33,11 @@ export default defineConfig({
     proxy: { '/api': { target: 'http://localhost:8787', rewrite: (p) => p.replace(/^\/api/, '') } },
   },
   plugins: [
+    {
+      name: 'pretty-page-urls',
+      configureServer: (server) => void server.middlewares.use(pretty),
+      configurePreviewServer: (server) => void server.middlewares.use(pretty),
+    },
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
