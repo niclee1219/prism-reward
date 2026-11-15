@@ -83,44 +83,6 @@ $('redeem-form').addEventListener('submit', (ev) => {
   void redeem(codeInput.value);
 });
 
-// Optional camera scan, only where the browser can read text-free codes (QR) natively.
-// The redeem screen shows the code as text, so typing always works.
-type Detector = { detect(src: HTMLVideoElement): Promise<{ rawValue: string }[]> };
-const BD = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => Detector }).BarcodeDetector;
-if (BD && navigator.mediaDevices?.getUserMedia) {
-  const scanBtn = $('scan');
-  const video = $<HTMLVideoElement>('scan-video');
-  scanBtn.hidden = false;
-  scanBtn.addEventListener('click', async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = stream;
-      video.hidden = false;
-      await video.play();
-      const detector = new BD({ formats: ['qr_code'] });
-      const stop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        video.hidden = true;
-      };
-      const started = Date.now();
-      const loop = async () => {
-        if (Date.now() - started > 20000) return stop();
-        const found = await detector.detect(video).catch(() => []);
-        const code = found[0]?.rawValue?.trim().toUpperCase();
-        if (code && /^[A-Z0-9]{5}$/.test(code)) {
-          stop();
-          codeInput.value = code;
-          void redeem(code);
-        } else requestAnimationFrame(loop);
-      };
-      void loop();
-    } catch {
-      redeemResult.className = 'result bad';
-      redeemResult.textContent = 'Camera not available. Type the code.';
-    }
-  });
-}
-
 // ---------- runs ----------
 interface RunRow { id: string; nickname: string; score: number; correct: number; gates: number; duration_ms: number; status: string }
 let searchTimer = 0;

@@ -1,6 +1,5 @@
 // The prize screen: show it to the PRISM team, who hold DONE to mark it handed over.
 // A redeemed code is remembered on the device (localStorage + cookie) and never shown as a prize again.
-import QRCode from 'qrcode';
 import { buzz } from '../game/haptics';
 import { local, type WonPrize } from '../net/device';
 import { confetti } from './confetti';
@@ -37,10 +36,8 @@ export function renderPrize(host: HTMLElement, p: WonPrize, onRedeemed?: () => v
     card.dataset.started = '1';
   };
   tick();
-  const qr = el('canvas', 'qr');
-  void QRCode.toCanvas(qr, p.code, { width: 96, margin: 0, color: { dark: '#1b1b2f', light: '#fff6e0' } }).catch(() => qr.remove());
   const stamp = el('div', 'stamp', 'REDEEMED');
-  card.append(el('div', 'prize', p.name), el('div', 'code', p.code), qr, live, el('small', '', `${p.nickname ?? local.locked ?? ''}`.trim() || 'PRISM Run'), stamp);
+  card.append(el('div', 'prize', p.name), el('div', 'code', p.code), live, el('small', '', `${p.nickname ?? local.locked ?? ''}`.trim() || 'PRISM Run'), stamp);
 
   // Staff-only: press and hold, so a player cannot mark it by tapping around.
   const done = el('button', 'staff-done');

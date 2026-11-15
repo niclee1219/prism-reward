@@ -263,9 +263,8 @@ the server; staff can remove any run live.
     fallback weight are what limit how fast prizes go; tune them in `/admin`.
 12. **Every spin gets a code,** including "Better luck next time + sticker", so the sticker can be redeemed
     and counted too.
-13. **Redeem by typing the 5-character code** (no look-alike characters). The redeem screen also shows a QR
-    of the code; `/admin` offers camera scanning only on browsers with a built-in barcode reader (Android
-    Chrome). iPhone staff type the code.
+13. **Redeem by typing the 5-character code** (no look-alike characters) into `/admin`. The player's prize
+    screen shows the code as large text; the team then holds DONE on the player's phone to mark it handed over.
 14. **The per-IP rate limit is generous (900 requests a minute)** because a whole venue usually shares one
     public IP address. The per-device limit (40 a minute) does the real work.
 15. **Admin PIN lockout:** 10 wrong PINs from one IP address locks `/admin` for that address for up to
