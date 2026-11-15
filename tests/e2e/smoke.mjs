@@ -142,6 +142,14 @@ try {
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/score.png` });
   // 5. Results beats, in order.
   const beat = () => page.getAttribute('#screen-results .beat', 'data-beat');
+  assert.ok(await page.isHidden('#back'), 'no BACK on the first card');
+  await page.click('#next');
+  assert.equal(await beat(), 'board');
+  // BACK returns to the score without replaying it, then NEXT carries on.
+  await page.click('#back');
+  assert.equal(await beat(), 'score');
+  await page.click('#next');
+  assert.equal(await beat(), 'board');
   await page.click('#next');
   assert.equal(await beat(), 'recipe');
   assert.equal(await page.locator('.recipe-list li').count(), 8);
@@ -172,7 +180,7 @@ try {
   const code = (await page.textContent('#redeem .code')).trim();
   assert.match(code, /^[A-Z2-9]{5}$/);
   assert.match(await page.textContent('#redeem'), /Test tote bag/);
-  step(`results beats in order: score, recipe, vote, cited answer, pain points, email, spin (won code ${code})`);
+  step(`results beats in order (with BACK): score, board, recipe, vote, cited answer, pain points, email, spin (won code ${code})`);
   await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/redeem.png` : 'tests/e2e/.last-redeem.png' });
 
   // 6. Play again is one tap.

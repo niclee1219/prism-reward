@@ -121,10 +121,29 @@ export const JUICE = {
   LOW_FPS: 45,
   SHAKE_BOOST: 0.006,
   SHAKE_CRASH: 0.02,
-  VIBRATE: { boost: 20, stumble: [30, 40, 30], shield: [15, 30, 15], crash: [80, 40, 120], near: 10 } as Record<
-    string,
-    number | number[]
-  >,
+  /** Vibration patterns in ms (on, off, on...). Each one should feel different with eyes closed. */
+  VIBRATE: {
+    boost: 20,
+    stumble: [30, 40, 30],
+    shield: [15, 30, 15],
+    crash: [80, 40, 120],
+    near: 10,
+    /** Right answer: a crisp double tap. */
+    correct: [18, 45, 32],
+    /** Wrong answer: two heavy thuds. */
+    wrong: [90, 60, 90],
+    /** Every coin: the lightest tick (rate-limited, coins come in fast lines). */
+    coin: 8,
+    coinDouble: [8, 30, 8],
+    /** A whole coin line without missing one. */
+    perfect: [10, 30, 10, 30, 40],
+    /** Results and wheel: peg ticks, the big reveal, and a win. */
+    tick: 5,
+    thump: 40,
+    win: [30, 60, 30, 60, 140],
+  },
+  /** Minimum gap between two light ticks (coins, wheel pegs), so they read as a ripple, not a hum. */
+  TICK_GAP_MS: 45,
 };
 
 export const NET = {

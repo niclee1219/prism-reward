@@ -95,7 +95,7 @@ $('dish-blurb').textContent = dishById(dish).blurb;
 attachInput(stage, (dir) => sim.move(dir));
 
 // Stop the browser's own gestures (pull-to-refresh, pinch, double-tap zoom) on the game page.
-document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).closest('.strip')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).closest('.strip, #screen-results .beat, .recipe-list, .lb-body')) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
 

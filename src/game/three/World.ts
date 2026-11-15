@@ -461,12 +461,12 @@ export class World {
           }
           const s = this.toScreen(head());
           this.hooks.onIngredient(s.x, s.y, e.recovered);
-          buzz('boost');
+          buzz('correct');
         } else {
           this.popAt(head(), 'OOPS', '#ff8a8a', 26);
           this.shake = Math.max(this.shake, 0.15);
           this.overlay.flash('rgba(230,57,70,0.25)');
-          buzz('stumble');
+          buzz('wrong');
         }
         break;
       }
@@ -474,6 +474,7 @@ export class World {
         const g = this.pickupMeshes.get(e.pickupId);
         if (g && !this.lowFx) this.sparks.emit(g.position.clone(), e.doubled ? [0xffd166, 0xff5d8f] : [0xffd166, 0xfff6e0], 7, 2.8, 4, 0.4);
         this.hooks.onCoin(e.points, e.doubled);
+        buzz(e.doubled ? 'coinDouble' : 'coin');
         break;
       }
       case 'lane':
@@ -483,7 +484,7 @@ export class World {
         break;
       case 'perfectLine':
         this.rings.fire(laneX(this.sim.playerX), 0, '#ffd166', 4);
-        buzz('near');
+        buzz('perfect');
         break;
       case 'power': {
         const g = this.pickupMeshes.get(e.pickupId);
