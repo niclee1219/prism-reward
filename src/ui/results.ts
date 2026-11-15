@@ -57,11 +57,11 @@ export function showResults(
   const counter = el('span', 'step-count');
   progress.append(dots, counter);
   const nav = el('div', 'nav-row');
-  const back = el('button', 'btn btn-back', '◂');
+  const back = el('button', 'pix-btn pix-btn--cream btn btn-back', '◂');
   back.type = 'button';
   back.id = 'back';
   back.setAttribute('aria-label', 'Back');
-  const next = el('button', 'btn', 'NEXT ▸');
+  const next = el('button', 'pix-btn btn', 'NEXT ▸');
   next.type = 'button';
   next.id = 'next';
   nav.append(back, next);
@@ -311,7 +311,7 @@ export function showResults(
     feedback.maxLength = 500;
     feedback.placeholder = "We'd love to explore deploying PRISM and sharing it with more users. Tell us how it could help you.";
     const notice = el('p', 'notice', 'Only @iras.gov.sg emails. Used only for the lucky draw and to follow up on your feedback.');
-    const send = el('button', 'btn', 'ENTER THE DRAW');
+    const send = el('button', 'pix-btn btn', 'ENTER THE DRAW');
     send.type = 'button';
     send.id = 'email-send';
     const msg = el('div', 'msg');
@@ -348,10 +348,13 @@ export function showResults(
     });
   };
 
+  // Set by cards that own a backdrop or loop; called whenever the card is replaced or the screen closes.
+  let leaveCard: (() => void) | null = null;
+
   // --- beat 6: thank you -------------------------------------------------------
   const beatThanks = (b: HTMLElement) => {
     next.textContent = 'PLAY AGAIN';
-    renderThanks(b, root, { entered: local.emailGiven || !!server?.entered, first: !seen.has('thanks') });
+    leaveCard = renderThanks(b, root, { entered: local.emailGiven || !!server?.entered, first: !seen.has('thanks') });
   };
 
   // --- navigation ---------------------------------------------------------------
@@ -370,6 +373,8 @@ export function showResults(
   const history: number[] = [];
   const show = (i: number, dir: 'fwd' | 'back') => {
     next.textContent = 'NEXT ▸';
+    leaveCard?.();
+    leaveCard = null;
     const fresh = el('div', `beat in-${dir}`);
     fresh.dataset.beat = beats[i].id;
     root.replaceChild(fresh, root.firstElementChild!);
@@ -388,6 +393,8 @@ export function showResults(
     do i++;
     while (i < beats.length && beats[i].skip?.());
     if (i >= beats.length) {
+      leaveCard?.();
+      leaveCard = null;
       root.hidden = true;
       root.innerHTML = '';
       onPlayAgain();

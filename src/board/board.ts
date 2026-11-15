@@ -5,6 +5,7 @@ import './board.css';
 import { NET } from '../config';
 import { DISHES } from '../content/dishes';
 import { api, type LeaderboardResult } from '../net/api';
+import { startSkyline } from '../scene/skyline';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const rowsEl = $('rows');
@@ -13,6 +14,14 @@ const kingEl = $('king');
 const kingName = $('king-name');
 const playsEl = $('plays');
 const emptyEl = $('empty');
+
+const gap = $('sky-gap');
+startSkyline($<HTMLCanvasElement>('sky'), {
+  towerX: () => {
+    const r = gap.getBoundingClientRect();
+    return (r.left + r.width / 2) / innerWidth;
+  },
+});
 
 const gameUrl = NET.GAME_URL || `${location.origin}/`;
 void QRCode.toCanvas($<HTMLCanvasElement>('qr'), gameUrl, { width: 640, margin: 1, color: { dark: '#1b1b2f', light: '#fff6e0' } });

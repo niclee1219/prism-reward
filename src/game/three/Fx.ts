@@ -1,6 +1,6 @@
 // Feedback effects. 3D: glowing sparks, paper confetti, floor shockwaves, speed streaks
-// and drifting motes. DOM: pop-up text, banners and a screen flash (crisp text at any
-// resolution, zero GPU cost).
+// and drifting motes. DOM: pop-up text, banners and a screen flash (crisp pixel-font text over the
+// low-res street, zero GPU cost).
 import * as THREE from 'three';
 import { bend, canvasTexture, whiteGlow } from './build';
 
@@ -225,6 +225,9 @@ export class Motes {
   }
 }
 
+/** Press Start 2P is about 1.6x as wide as the sans the pop-up sizes were tuned for. */
+const PIXEL_FONT_K = 0.62;
+
 /** Pop-up text, banners and screen flash, as DOM elements over the canvas. */
 export class Overlay {
   private layer: HTMLDivElement;
@@ -259,7 +262,10 @@ export class Overlay {
     el.style.left = `${Math.min(Math.max(x, 70), this.stage.clientWidth - 70)}px`;
     el.style.top = `${Math.max(y, 60)}px`;
     el.style.color = color;
-    el.style.fontSize = `${size}px`;
+    // Pop-ups use the pixel display font, whose letters are a full em wide: scale the requested size down to
+    // match the old look, and never let a long call-out run off the screen.
+    const fit = (this.stage.clientWidth - 28) / Math.max(text.length, 1);
+    el.style.fontSize = `${Math.round(Math.min(size * PIXEL_FONT_K, fit))}px`;
     this.layer.append(el);
     el.addEventListener('animationend', () => el.remove());
     return el;

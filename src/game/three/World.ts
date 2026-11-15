@@ -43,6 +43,12 @@ const POWER_TEXT: Record<string, [string, string]> = {
   shield: ['PRISM SHIELD!', '#8ecae6'],
 };
 
+/** A number from the page URL (`?px=4`), for trying pixel settings on a phone without a rebuild. */
+function urlNumber(name: string): number | null {
+  const v = new URLSearchParams(location.search).get(name);
+  return v !== null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null;
+}
+
 const smooth = (k: number) => {
   k = Math.min(Math.max(k, 0), 1);
   return k * k * (3 - 2 * k);
@@ -91,6 +97,8 @@ export class World {
   private fireClock = 0;
   private tmp = new THREE.Vector3();
   private lowFx = false;
+  /** The canvas's CSS size and how far it overhangs the stage's left / top edge (see resize). */
+  private canvasBox = { w: 1, h: 1, x: 0, y: 0 };
   // Camera: every mode just says where it WANTS the camera; the camera eases there.
   private camPos = new THREE.Vector3(0, 2.1, 4.6);
   private camLook = new THREE.Vector3(0, 2.3, -10);
@@ -112,10 +120,12 @@ export class World {
     private sim: RunSim,
     private hooks: WorldHooks,
   ) {
-    const dpr = window.devicePixelRatio || 1;
-    this.renderer = new THREE.WebGLRenderer({ antialias: dpr < 2, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(dpr, VIEW.MAX_DPR));
+    // Pixel art: the scene is drawn small (one buffer pixel per VIEW.PIXEL_SIZE CSS px) with no antialiasing,
+    // and CSS scales the canvas up with nearest-neighbour sampling (see resize()).
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(1);
     this.renderer.setClearColor(HAZE);
+    this.renderer.domElement.classList.add('pix-crisp');
     mount.append(this.renderer.domElement);
     this.overlay = new Overlay(stage, reducedMotion);
 
@@ -140,6 +150,9 @@ export class World {
     this.lastFrame = performance.now();
     this.renderer.setAnimationLoop((now) => this.frame(now));
   }
+
+  /** True while a full-screen page (Learn) hides the street: frames are skipped until it is false again. */
+  paused = false;
 
   /** Clears the world for a new run. Call before `intro` / `sim.startRun`. */
   reset(): void {
@@ -203,6 +216,11 @@ export class World {
   // --- frame ---------------------------------------------------------------
 
   private frame(now: number): void {
+    // Something covers the whole street (Learn): skip the work, and keep the frame-rate watcher out of it.
+    if (this.paused) {
+      this.lastFrame = now;
+      return;
+    }
     const dt = Math.min((now - this.lastFrame) / 1000, 0.05);
     this.lastFrame = now;
     this.time += dt;
@@ -552,9 +570,11 @@ export class World {
     buzz('shield');
   }
 
+  /** World point to stage CSS px. The canvas can overhang the stage by under one art pixel (see resize). */
   private toScreen(v: THREE.Vector3): { x: number; y: number } {
     const p = v.clone().project(this.camera);
-    return { x: ((p.x + 1) / 2) * this.stage.clientWidth, y: ((1 - p.y) / 2) * this.stage.clientHeight };
+    const c = this.canvasBox;
+    return { x: ((p.x + 1) / 2) * c.w - c.x, y: ((1 - p.y) / 2) * c.h - c.y };
   }
 
   private popAt(v: THREE.Vector3, text: string, color: string, size: number): void {
@@ -566,21 +586,41 @@ export class World {
     this.overlay.pop(text, this.stage.clientWidth * fx, this.stage.clientHeight * fy, color, size, cls);
   }
 
+  /**
+   * Slow device: drop the decorative effects. The resolution is already low (the pixel-art render draws
+   * 1/PIXEL_SIZE² of the stage's pixels), so it stays as it is and the look does not change mid-run.
+   */
   private goLowFx(): void {
     this.lowFx = true;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, VIEW.LOW_FX_DPR));
     this.centre.lowFx();
     this.streaks.group.visible = false;
     this.motes.points.visible = false;
-    this.resize();
   }
 
+  /**
+   * The drawing buffer is the stage size divided by PIXEL_SIZE, rounded UP, and the canvas is shown at exactly
+   * PIXEL_SIZE CSS px per buffer pixel (so every art pixel is the same size), centred on the stage. It can
+   * overhang each edge by less than one art pixel; the stage clips that.
+   */
   private resize(): void {
     const w = this.stage.clientWidth;
     const h = this.stage.clientHeight;
     if (!w || !h) return;
-    this.renderer.setSize(w, h);
-    this.camera.aspect = w / h;
+    const px = Math.max(1, Math.round(urlNumber('px') ?? VIEW.PIXEL_SIZE));
+    const bw = Math.ceil(w / px);
+    const bh = Math.ceil(h / px);
+    this.renderer.setSize(bw, bh, false);
+    const c = this.canvasBox;
+    c.w = bw * px;
+    c.h = bh * px;
+    c.x = (c.w - w) / 2;
+    c.y = (c.h - h) / 2;
+    const s = this.renderer.domElement.style;
+    s.width = `${c.w}px`;
+    s.height = `${c.h}px`;
+    s.left = `${-c.x}px`;
+    s.top = `${-c.y}px`;
+    this.camera.aspect = bw / bh;
     this.camera.fov = 0; // force a projection update next frame
   }
 }

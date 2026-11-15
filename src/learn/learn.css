@@ -1,0 +1,236 @@
+/* Learn mode (src/learn/learn.ts): a full-screen pixel scene with the frame on top of it. Uses the shared pixel look in
+   src/ui/pixel.css: Press Start 2P for labels, buttons and stamps; Jersey 15 (at least 18px) for sentences. */
+
+#screen-learn.learn {
+  position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: calc(var(--sat) + 10px) 14px calc(var(--sab) + 14px); overflow: hidden; text-align: center;
+  background: #cfe6d6; color: var(--pix-ink); touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.learn-layer { position: absolute; inset: 0; overflow: hidden; }
+.learn-layer.night { background: #0b1030; }
+.learn-layer.day { background: #6fc8f2; }
+.learn-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.learn-top, .learn-line, .learn-band, .learn-nav { position: relative; z-index: 2; }
+
+/* top: progress dots and SKIP */
+.learn-top { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 360px; }
+.learn-dots { display: flex; gap: 4px; padding: 6px 8px; background: var(--pix-ink); border: 2px solid var(--pix-cream); }
+.learn-dots i { width: 9px; height: 8px; background: #5b4a3a; }
+.learn-dots i.on { background: #a08a5a; }
+.learn-dots i.now { width: 22px; background: var(--pix-gold); }
+.learn-skip { font-size: 10px; padding: 0.85em 0.9em 0.8em; }
+
+/* the one line of text */
+.learn-line { flex: none; width: 100%; max-width: 360px; margin: 0; padding: 8px 12px 9px; font-size: 25px; line-height: 1.04; }
+.learn.in-fwd .learn-line, .learn.in-back .learn-line { animation: rise 0.36s steps(4) backwards; }
+
+/* the free area between the line and the navigation: scene panels go here */
+.learn-band {
+  flex: 1; min-height: 0; width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; gap: 10px; pointer-events: none;
+}
+.learn-band button, .learn-band .learn-chat, .learn-band .learn-again { pointer-events: auto; }
+.learn[data-scene='next'] .learn-band { justify-content: center; }
+/* Very short phones: the Generate chat may not fit, so its band scrolls (main.ts lets .learn-band scroll by touch). */
+.learn[data-scene='generate'] .learn-band { justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.learn[data-scene='generate'] .learn-chat { flex: none; margin: auto 0; }
+.learn[data-scene='ending'] .learn-band { justify-content: flex-start; padding-top: 12px; }
+.learn[data-scene='docs'] .learn-band { justify-content: flex-start; padding-top: 4px; }
+
+/* navigation: BACK, then NEXT or the "what to do" text */
+.learn-nav { flex: none; }
+.learn-nav .learn-next { font-size: 15px; }
+.learn-nav .learn-next.nudge { animation: pulse 1.2s steps(2) infinite; }
+.learn-nav .learn-play { font-size: 24px; padding-top: 0.55em; padding-bottom: 0.6em; }
+.learn-todo {
+  flex: 1; display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 6px 10px;
+  font-size: 22px; line-height: 1; color: var(--pix-ink); background: rgba(255, 245, 214, 0.92); border: 3px dashed var(--pix-ink);
+}
+
+/* the stamp: the real name for the step, slammed on once it is done */
+.learn-stamp {
+  position: absolute; z-index: 4; left: 50%; top: var(--sy, 45%); display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 14px 9px; transform: translate(-50%, -50%) rotate(-7deg); pointer-events: none;
+  color: #d62839; background: rgba(255, 245, 214, 0.9); border: 4px solid #d62839;
+  box-shadow: inset 0 0 0 3px rgba(255, 245, 214, 0.9), inset 0 0 0 5px #d62839, 4px 5px 0 rgba(42, 22, 8, 0.35);
+}
+.learn-stamp b { font: 400 22px/1.1 var(--pix-font-display); letter-spacing: 0.04em; }
+.learn-stamp.big b { font-size: 46px; }
+.learn-stamp small { font: 400 19px/1 var(--pix-font-body); color: #a01d2c; }
+.learn-stamp.slam { animation: learn-slam 0.45s steps(5) both; }
+.learn-stamp.docked {
+  left: var(--dx); top: var(--dy); transform: translate(-50%, -50%) rotate(-5deg) scale(0.55); animation: none;
+  transition: left 0.36s steps(4), top 0.36s steps(4), transform 0.36s steps(4);
+}
+.learn-stamp.docked.instant { transition: none; }
+@keyframes learn-slam {
+  0% { transform: translate(-50%, -50%) rotate(-7deg) scale(2.6); opacity: 0; }
+  60% { transform: translate(-50%, -50%) rotate(-7deg) scale(0.92); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-7deg) scale(1); opacity: 1; }
+}
+
+/* labels pinned to spots in the art: the anchor point is their bottom centre */
+.learn-tag { position: absolute; z-index: 1; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none; }
+.learn-tag--name {
+  font: 400 9px/1 var(--pix-font-display); color: var(--pix-gold); background: var(--pix-ink); padding: 5px 6px 4px;
+  border: 2px solid var(--pix-gold);
+}
+.learn-tag--name::after {
+  content: ''; position: absolute; left: 50%; top: 100%; margin: 2px 0 0 -4px; width: 8px; height: 4px; background: var(--pix-gold);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.learn-tag--plate { font: 400 8px/1 var(--pix-font-display); color: var(--pix-cream); background: var(--pix-wood-dark); border: 2px solid var(--pix-wood-edge); padding: 4px 6px 3px; }
+.learn-tag--shelf {
+  transform: translate(0, -50%); font: 400 19px/1 var(--pix-font-body); color: var(--pix-ink); background: var(--pix-cream);
+  border: 2px solid var(--pix-ink); border-left: 6px solid var(--c); padding: 3px 7px 3px 6px; box-shadow: 2px 2px 0 rgba(42, 22, 8, 0.35);
+}
+.learn-tag--shelf.flash { animation: shelf-flash 0.6s steps(3); }
+@keyframes shelf-flash { 0%, 66% { background: var(--pix-gold); transform: translate(0, -50%) scale(1.12); } }
+.learn-tag--chip {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; max-width: 92%; white-space: normal;
+  font: 400 20px/1 var(--pix-font-body); color: var(--pix-ink); background: var(--pix-white); border: 2px solid var(--pix-ink);
+  padding: 5px 10px 6px; box-shadow: 3px 3px 0 var(--pix-ink); opacity: 0;
+}
+.learn-tag--chip b { font-weight: 400; color: #a01d2c; }
+.learn-tag--chip.pop { animation: chip-pop 1.7s steps(8) forwards; }
+@keyframes chip-pop {
+  0% { opacity: 0; transform: translate(-50%, -60%) scale(0.6); }
+  15%, 80% { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%); }
+}
+.learn-tag--wood {
+  transform: translate(-50%, 0); font: 400 8px/1 var(--pix-font-display); color: var(--pix-wood-text); background: var(--pix-wood);
+  border: 2px solid var(--pix-wood-edge); padding: 4px 5px 3px; text-shadow: 1px 1px var(--pix-wood-edge);
+}
+
+/* tap targets: one big invisible button over the picture, and a marked spot the hint points at */
+.learn-tap { position: absolute; inset: 0; z-index: 0; margin: 0; padding: 0; background: transparent; border: 0; cursor: pointer; }
+.learn-tap:focus-visible { outline: 3px dashed var(--pix-gold); outline-offset: -6px; }
+.learn-ring {
+  position: absolute; z-index: 1; transform: translate(-50%, -50%); pointer-events: none;
+  border: 3px dashed rgba(255, 209, 102, 0.9); animation: ring-blink 1.4s steps(2) infinite;
+}
+.learn-ring.done { display: none; }
+@keyframes ring-blink { 50% { border-color: rgba(42, 22, 8, 0.55); } }
+.learn.hinting .learn-ring { border-width: 4px; animation-duration: 0.6s; }
+.learn.hinting .learn-target:not(.learn-ring):not(.read) { animation: hint-glow 0.7s steps(2) infinite alternate; }
+@keyframes hint-glow { from { outline: 3px solid transparent; } to { outline: 4px solid var(--pix-gold); outline-offset: 3px; } }
+.learn-hand {
+  position: absolute; z-index: 5; font-size: 36px; font-style: normal; line-height: 1; transform: translate(-50%, 0); pointer-events: none;
+  filter: drop-shadow(2px 2px 0 var(--pix-ink)); animation: hand-bob 0.8s steps(2) infinite;
+}
+@keyframes hand-bob { 50% { transform: translate(-50%, -8px); } }
+
+/* Ask / Retrieve: the three preset questions */
+.learn-questions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; }
+.learn-q {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px 10px; text-align: left; color: var(--pix-ink);
+  background: var(--pix-cream); border: 3px solid var(--pix-ink); box-shadow: inset 0 -4px #e6d3a6, 0 4px 0 var(--pix-ink);
+  font: 400 22px/1 var(--pix-font-body);
+}
+.learn-q::before {
+  content: '?'; flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding-top: 2px;
+  font: 400 12px/1 var(--pix-font-display); background: var(--pix-gold); border: 2px solid var(--pix-ink);
+}
+.learn-q:active { transform: translateY(4px); box-shadow: inset 0 -2px #e6d3a6; }
+.learn-q[aria-pressed='true'] { background: var(--pix-gold); box-shadow: inset 0 -4px var(--pix-gold-shade), 0 4px 0 var(--pix-ink); }
+.learn-q[aria-pressed='true']::before { background: var(--pix-white); }
+.learn-questions--row { flex-direction: row; gap: 6px; }
+.learn-questions--row .learn-q { flex: 1; justify-content: center; gap: 0; padding: 6px 2px 8px; text-align: center; font-size: 19px; }
+.learn-questions--row .learn-q::before { display: none; }
+.learn-again { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; max-width: 340px; }
+.learn-again > span { font-size: 19px; line-height: 1; color: var(--pix-ink); background: rgba(255, 245, 214, 0.85); padding: 2px 8px; }
+.learn-pulled {
+  position: absolute; z-index: 1; padding: 6px 9px 7px; text-align: left; font-size: 19px; line-height: 1.02;
+  box-shadow: 3px 3px 0 var(--pix-ink); animation: rise 0.35s steps(4) backwards;
+}
+.learn-pulled ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.learn-pulled li { padding-left: 7px; border-left: 5px solid var(--c); }
+
+/* Generate: the chat, the pieces as code, the typed answer and its sources */
+.learn-chat {
+  width: 100%; max-width: 340px; text-align: left; color: var(--pix-ink); background: var(--pix-cream);
+  border: 3px solid var(--pix-ink); box-shadow: 0 0 0 3px var(--blue), 0 7px 0 3px var(--pix-night-ink);
+}
+.learn-chat .who { padding: 7px 10px 6px; background: var(--ink2); color: var(--pix-cream); font: 400 10px/1 var(--pix-font-display); }
+.learn-chat .you {
+  width: fit-content; max-width: 88%; margin: 9px 10px 0 auto; padding: 5px 9px 6px; background: var(--ink2); color: var(--pix-cream);
+  border: 2px solid var(--pix-ink); font-size: 20px; line-height: 1.02;
+}
+.learn-codes { display: flex; flex-direction: column; gap: 5px; margin: 9px 10px 0; }
+.learn-code { background: #1d1b38; border: 2px solid var(--pix-ink); border-left: 6px solid var(--c); overflow: hidden; }
+.learn-code .file { padding: 4px 7px 1px; font: 400 16px/1 var(--pix-font-body); color: var(--pix-gold); }
+.learn-code pre { margin: 0; padding: 2px 7px 5px; font: 11px/1.3 ui-monospace, Menlo, Consolas, monospace; color: #e6ebf0; white-space: pre; overflow: hidden; }
+.learn-codes.gone { display: none; }
+.learn-generate { display: flex; margin: 10px auto 12px; font-size: 14px; }
+.learn-chat .ans {
+  margin: 9px 10px 0; padding: 7px 9px 8px; min-height: 3.2em; background: var(--pix-white); border: 2px solid var(--pix-ink);
+  box-shadow: 3px 3px 0 rgba(42, 22, 8, 0.25); font-size: 21px; line-height: 1.06;
+}
+.learn-chat .ans.typing::after { content: '_'; color: var(--teal); animation: blink 0.6s steps(2) infinite; }
+.learn-chat .srcs { list-style: none; margin: 8px 10px 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.learn-chat .srcs li {
+  padding: 4px 7px 4px 9px; background: #e7f4fb; border: 2px solid var(--pix-ink); border-left: 6px solid var(--c);
+  font-size: 17px; line-height: 1.02; overflow-wrap: anywhere;
+}
+.learn-chat .srcs li.later { opacity: 0; transform: scale(1.4); }
+.learn-chat .srcs li.in { opacity: 1; transform: none; transition: opacity 0.2s steps(2), transform 0.2s steps(2); }
+
+/* Docs: the four stamps so far, adding up to RAG */
+.learn-recap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; width: 100%; max-width: 300px; }
+.mini-stamp {
+  padding: 7px 4px 6px; font: 400 10px/1 var(--pix-font-display); color: #d62839; background: rgba(255, 245, 214, 0.92);
+  border: 3px solid #d62839; transform: rotate(-4deg); opacity: 0;
+}
+.mini-stamp:nth-child(even) { transform: rotate(3deg); }
+.learn-recap.shown .mini-stamp { opacity: 1; animation: mini-in 0.3s calc(var(--i) * 0.25s) steps(3) backwards; }
+@keyframes mini-in { from { opacity: 0; transform: scale(2); } }
+
+/* Coming next: three signposts along the path */
+.learn-signs { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; padding-bottom: 6px; }
+.learn-sign { position: relative; width: 76%; max-width: 270px; font-size: 12px; padding: 0.95em 0.5em 0.85em; cursor: pointer; }
+.learn-sign:nth-child(1) { align-self: flex-start; margin-left: 3%; }
+.learn-sign:nth-child(2) { align-self: flex-end; margin-right: 3%; }
+.learn-sign:nth-child(3) { align-self: flex-start; margin-left: 9%; }
+.learn-sign::after {
+  content: ''; position: absolute; left: 50%; top: 100%; z-index: -1; width: 8px; height: 18px; margin: 4px 0 0 -4px;
+  background: var(--pix-wood-dark); border: 2px solid var(--pix-wood-edge); border-top: 0;
+}
+.learn-sign:active { transform: translateY(3px); }
+.learn-sign.read .learn-sign-title::before { content: '✓ '; color: var(--pix-green); }
+.learn-sign[aria-expanded='true'] { outline: 3px solid var(--pix-gold); outline-offset: 2px; }
+.learn-sign-text { width: 100%; max-width: 340px; margin: 4px 0 0; padding: 8px 12px 9px; font-size: 23px; line-height: 1.05; }
+.learn-sign-text.in { animation: rise 0.3s steps(3) backwards; }
+
+/* the ending */
+.learn-end-sign { width: min(92%, 340px); font-size: 22px; animation: rise 0.6s steps(6) backwards; }
+.learn-end-sign small { font-size: 21px; line-height: 1.1; }
+
+@media (max-height: 740px) {
+  #screen-learn.learn { gap: 8px; padding-top: calc(var(--sat) + 8px); padding-bottom: calc(var(--sab) + 10px); }
+  .learn-line { font-size: 22px; padding: 6px 10px 7px; }
+  .learn-q { font-size: 20px; padding: 6px 9px 8px; }
+  .learn-signs { gap: 12px; }
+  .learn-sign-text { font-size: 21px; }
+  .learn-code pre { line-height: 1.2; }
+  .learn-again > span { display: none; }
+  .learn-questions--row .learn-q { padding: 5px 2px 7px; }
+  .learn-pulled { font-size: 18px; padding: 4px 8px 5px; }
+  .learn-pulled ul { gap: 1px; }
+  .learn-stamp.big b { font-size: 36px; }
+  .learn-stamp small { font-size: 17px; }
+  .learn-recap { gap: 6px 8px; }
+  .mini-stamp { padding: 5px 4px 4px; }
+}
+
+/* Very short phones (360 x 640 and below): three lines of each code piece are enough to look like code. */
+@media (max-height: 660px) {
+  /* overflow clips at the padding edge, so the bottom gap is a margin here, not padding */
+  .learn-code pre { max-height: calc(3 * 1.2em + 2px); padding-bottom: 0; margin-bottom: 5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learn-line, .learn-stamp, .learn-hand, .learn-ring, .learn-tag--shelf, .learn-pulled, .mini-stamp, .learn-sign-text,
+  .learn-end-sign, .learn-next.nudge, .learn.hinting .learn-target { animation: none !important; }
+  .learn-tag--chip.pop { animation: none; opacity: 1; }
+}

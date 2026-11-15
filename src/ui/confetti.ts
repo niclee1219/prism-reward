@@ -7,6 +7,7 @@ const COLOURS = ['#e63946', '#ffd166', '#52e08a', '#8ecae6', '#9b5de5', '#f15bb5
  * With `origin` (pixels inside `host`) it pops out of that point like a party cannon instead of raining from the top.
  */
 export function confetti(host: HTMLElement, amount = 80, origin?: { x: number; y: number }): void {
+  amount = Math.round(amount * 1.2); // a touch stronger than the original
   if (reducedMotion) amount = Math.min(amount, 20);
   const canvas = document.createElement('canvas');
   canvas.className = 'confetti';

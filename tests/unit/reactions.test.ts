@@ -15,6 +15,7 @@ describe('planReactions', () => {
     const p = planReactions(flood);
     expect(p.bursts).toBe(MAX_BURSTS);
     expect(p.emoji).toHaveLength(MAX_EMOJI);
+    expect([MAX_BURSTS, MAX_EMOJI]).toEqual([4, 30]);
   });
 
   it('does nothing for no reactions', () => {

@@ -6,3 +6,4 @@ dev-dist
 .localdb
 *.log
 tests/e2e/.last-redeem.png
+.superpowers/

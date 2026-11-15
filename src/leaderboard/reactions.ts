@@ -2,8 +2,8 @@
 import type { ReactionKind } from '../net/reactions';
 
 /** Most confetti bursts and emoji one poll is allowed to put on screen, so a flood cannot bury the board. */
-export const MAX_BURSTS = 3;
-export const MAX_EMOJI = 24;
+export const MAX_BURSTS = 4;
+export const MAX_EMOJI = 30;
 
 export interface ReactionPlan {
   /** Number of confetti bursts to fire (each is one cannon volley). */

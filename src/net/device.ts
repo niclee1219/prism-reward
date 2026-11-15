@@ -85,6 +85,14 @@ export const local = {
       writeCookie('prism.locked', v);
     }
   },
+  /** Has this phone been through Learn (finished or skipped)? Until it has, the game opens on Learn. */
+  get seenLearn(): boolean {
+    return getItem('prism.learn') === '1';
+  },
+  set seenLearn(v: boolean) {
+    setItem('prism.learn', v ? '1' : '0');
+  },
+  /** Has this phone seen the controls slides? They show once, on the first PLAY tap. */
   get seenHowto(): boolean {
     return getItem('prism.howto') === '1';
   },

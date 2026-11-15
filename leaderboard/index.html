@@ -8,19 +8,22 @@
     <title>PRISM Run · Leaderboard</title>
   </head>
   <body class="lb-page">
+    <canvas id="sky" class="pix-crisp" aria-hidden="true"></canvas>
     <canvas id="fx" aria-hidden="true"></canvas>
     <main class="stage" id="lb-stage">
       <header class="top">
         <h1 class="lb-logo">PRISM<span>RUN</span></h1>
-        <div class="top-mid">TOP 10 <i>·</i> HAWKER HEROES</div>
+        <div class="top-mid pix-display">TOP 10 <i>·</i> HAWKER HEROES</div>
         <div class="status" id="status">● CONNECTING</div>
       </header>
 
-      <section class="list">
+      <section class="list pix-panel pix-panel--night">
         <ol class="rows" id="rows" aria-live="polite"></ol>
       </section>
 
-      <aside class="side">
+      <div class="sky-gap" id="sky-gap" aria-hidden="true"></div>
+
+      <aside class="side pix-panel pix-panel--night pix-panel--gold">
         <div class="lb-king" id="king">
           <div class="king-crown">👑</div>
           <div class="king-label">CURRENT KING</div>
@@ -30,7 +33,7 @@
         <div class="target" id="target"><b id="target-big">BE FIRST</b><span id="target-small">on the board</span></div>
         <div class="join">
           <div class="qr-box"><canvas id="qr"></canvas></div>
-          <div class="join-text"><b>SCAN. RUN. SERVE.</b><span>Talk to your code.<br />Understand it in minutes.</span></div>
+          <div class="join-text"><b class="pix-display">SCAN. RUN.<br />SERVE.</b><span>Talk to your code.<br />Understand it in minutes.</span></div>
         </div>
         <div class="plays"><b id="plays">0</b><span>runs played</span></div>
       </aside>
@@ -40,7 +43,7 @@
 
     <div class="takeover" id="takeover" hidden>
       <div class="rays"></div>
-      <div class="to-card">
+      <div class="to-card pix-panel pix-panel--night">
         <div class="to-kicker" id="to-kicker"></div>
         <div class="to-title" id="to-title"></div>
         <div class="to-name" id="to-name"></div>

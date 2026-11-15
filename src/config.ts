@@ -8,9 +8,15 @@ export const VIEW = {
   /** Stage height / width is clamped to this range so phones are not letterboxed. */
   MIN_ASPECT: 1.55,
   MAX_ASPECT: 2.25,
-  /** Cap on device pixel ratio for the 3D canvas (lowered further on slow devices). */
-  MAX_DPR: 2,
-  LOW_FX_DPR: 1,
+  /**
+   * PIXEL ART SIZE of the 3D game: how many CSS pixels wide one rendered pixel is. The street is drawn at
+   * (screen size / PIXEL_SIZE) and blown up with crisp, blocky scaling, so it reads as pixel art.
+   *   4 = the same grain as the pixel forest on the thank-you screen (default)
+   *   3 = a bit finer: far-off hazards and coins get a little crisper   2 = subtle   1 = no pixel look.
+   * Any whole number works; the HUD and pop-up text always stay sharp. Bigger is also cheaper to draw.
+   * To try another size on a phone without a rebuild, open the game as /?px=3 (that page load only).
+   */
+  PIXEL_SIZE: 4,
 };
 
 /**

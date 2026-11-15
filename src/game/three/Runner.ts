@@ -1,17 +1,30 @@
-// The player: a chunky young hawker in a singlet, apron and headband, seen from behind,
-// with the PRISM gem floating over their shoulder and an optional shield bubble.
+// The player: a chubby beaver cook seen from behind, in Ah Ma's red apron and headband. From behind a beaver
+// is mostly its round brown back, two round ears and the big flat paddle tail, so the tail is large, sits
+// flat enough for the chase camera to see its top, and wags as it runs. The face (for the serve close-up)
+// is on the far side. The PRISM gem floats over its shoulder and an optional shield bubble surrounds it.
 import * as THREE from 'three';
 import { Builder, bend, canvasTexture, glowTexture } from './build';
 
-function part(build: (b: Builder) => void, pivotY = 0): THREE.Group {
+const FUR = '#b8722f';
+const FUR_DARK = '#6e3d17';
+const CREAM = '#f3d3a5';
+const TAIL = '#40220c';
+const TAIL_EDGE = '#241207';
+const TAIL_SCALE = '#7d4c22';
+const APRON = '#e63946';
+const INK = '#2a1608';
+const PINK = '#f2958f';
+
+/** Builds a mesh around a pivot point, so it can swing from there (hip, shoulder, tail root). */
+function part(build: (b: Builder) => void, pivot: [number, number, number]): THREE.Group {
   const b = new Builder();
   build(b);
   const mesh = b.mesh();
-  mesh.position.y = -pivotY;
-  const pivot = new THREE.Group();
-  pivot.position.y = pivotY;
-  pivot.add(mesh);
-  return pivot;
+  mesh.position.set(-pivot[0], -pivot[1], -pivot[2]);
+  const g = new THREE.Group();
+  g.position.set(...pivot);
+  g.add(mesh);
+  return g;
 }
 
 export class Runner {
@@ -19,6 +32,7 @@ export class Runner {
   readonly body = new THREE.Group();
   private legs: THREE.Group[] = [];
   private arms: THREE.Group[] = [];
+  private tail: THREE.Group;
   private gem: THREE.Mesh;
   private gemGlow: THREE.Sprite;
   private shield: THREE.Sprite;
@@ -32,37 +46,72 @@ export class Runner {
   serving = false;
 
   constructor() {
-    const SKIN = '#e0a878';
-    // Torso, head, apron strings and headband in one mesh. The front faces -z (away from camera).
+    // Body, head, ears, apron and headband in one mesh. The front (face, apron bib) faces -z, away from the camera.
     const torso = new Builder()
-      .box(0.56, 0.62, 0.32, '#fff6e0', [0, 1.12, 0]) // singlet
-      .box(0.5, 0.5, 0.02, '#e63946', [0, 1.02, -0.17]) // apron front
-      .box(0.58, 0.05, 0.34, '#e63946', [0, 0.92, 0]) // apron strings round the waist
-      .box(0.06, 0.22, 0.02, '#e63946', [0, 0.8, 0.17]) // bow at the back
-      .box(0.58, 0.24, 0.34, '#457b9d', [0, 0.78, 0]) // shorts
-      .box(0.16, 0.12, 0.16, SKIN, [0, 1.48, 0]) // neck
-      .box(0.38, 0.38, 0.36, SKIN, [0, 1.71, 0]) // head
-      .box(0.4, 0.2, 0.38, '#1b1b2f', [0, 1.86, 0.01]) // hair
-      .box(0.41, 0.07, 0.39, '#e63946', [0, 1.79, 0]) // headband
-      .box(0.05, 0.14, 0.05, '#e63946', [0.08, 1.75, 0.22]) // headband tails
-      .box(0.05, 0.12, 0.05, '#e63946', [-0.02, 1.73, 0.23])
-      .box(0.06, 0.08, 0.02, '#1b1b2f', [-0.09, 1.7, -0.185]) // eyes and a grin, for the serve close-up
-      .box(0.06, 0.08, 0.02, '#1b1b2f', [0.09, 1.7, -0.185])
-      .box(0.16, 0.04, 0.02, '#9c3b2e', [0, 1.6, -0.185])
+      .sphere(0.36, FUR, [0, 0.86, 0.02], [1, 0.95, 0.92]) // round bottom
+      .box(0.6, 0.5, 0.44, FUR, [0, 1.16, 0]) // chest and back
+      .sphere(0.3, CREAM, [0, 1.0, -0.12], [0.95, 1.1, 0.7]) // pale belly (front)
+      .box(0.5, 0.5, 0.03, APRON, [0, 1.02, -0.27]) // apron bib
+      .box(0.64, 0.06, 0.48, APRON, [0, 0.98, 0]) // apron strings round the waist
+      .box(0.1, 0.1, 0.06, APRON, [0, 0.98, 0.26]) // the knot at the back...
+      .box(0.2, 0.12, 0.04, APRON, [-0.13, 1.0, 0.26], [0, 0, 0.35]) // ...and its two loops
+      .box(0.2, 0.12, 0.04, APRON, [0.13, 1.0, 0.26], [0, 0, -0.35])
+      .box(0.06, 0.2, 0.03, APRON, [-0.05, 0.86, 0.26], [0, 0, -0.2]) // and two ends hanging down
+      .box(0.06, 0.2, 0.03, APRON, [0.05, 0.86, 0.26], [0, 0, 0.2])
+      .sphere(0.3, FUR, [0, 1.64, 0], [1, 0.92, 0.95]) // round head, no neck
+      .sphere(0.1, FUR_DARK, [-0.21, 1.86, 0.02], [1, 1, 0.6]) // round ears
+      .sphere(0.1, FUR_DARK, [0.21, 1.86, 0.02], [1, 1, 0.6])
+      .sphere(0.055, PINK, [-0.21, 1.86, -0.04], [1, 1, 0.4])
+      .sphere(0.055, PINK, [0.21, 1.86, -0.04], [1, 1, 0.4])
+      .cyl(0.29, 0.29, 0.08, APRON, [0, 1.72, 0], 12) // headband
+      .box(0.06, 0.18, 0.04, APRON, [0.06, 1.65, 0.29], [0, 0, 0.25]) // headband tails
+      .box(0.06, 0.15, 0.04, APRON, [-0.04, 1.64, 0.3], [0, 0, -0.3])
+      // The face, for the serve close-up: cream muzzle, nose, buck teeth, eyes, a grin.
+      .sphere(0.16, CREAM, [0, 1.56, -0.22], [1.2, 0.85, 0.8])
+      .sphere(0.05, INK, [0, 1.6, -0.35], [1.3, 0.9, 0.8])
+      .box(0.05, 0.08, 0.02, '#ffffff', [-0.028, 1.46, -0.33])
+      .box(0.05, 0.08, 0.02, '#ffffff', [0.028, 1.46, -0.33])
+      .box(0.06, 0.08, 0.02, INK, [-0.12, 1.7, -0.27])
+      .box(0.06, 0.08, 0.02, INK, [0.12, 1.7, -0.27])
+      .sphere(0.05, PINK, [-0.19, 1.58, -0.24], [1, 0.8, 0.4])
+      .sphere(0.05, PINK, [0.19, 1.58, -0.24], [1, 0.8, 0.4])
       .mesh();
     this.body.add(torso);
 
+    // The paddle tail: a flat oval with a dark rim and a criss-cross of scales, hanging from the base of the
+    // back and trailing toward the camera, tipped down a little so the camera sees its broad top.
+    this.tail = part(
+      (b) => {
+        b.add(new THREE.CylinderGeometry(0.5, 0.5, 0.07, 16), TAIL_EDGE, [0, 0.66, 0.62], [0.32, 0, 0], [0.5, 1, 0.84]);
+        b.add(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 16), TAIL, [0, 0.69, 0.62], [0.32, 0, 0], [0.43, 1, 0.76]);
+        for (const s of [-1, 1]) {
+          for (const k of [-0.18, 0.02, 0.22]) {
+            b.add(new THREE.BoxGeometry(0.035, 0.02, 0.5), TAIL_SCALE, [0, 0.72 - k * 0.32, 0.62 + k], [0.32, s * 0.7, 0]);
+          }
+        }
+        b.box(0.18, 0.14, 0.22, FUR_DARK, [0, 0.76, 0.3], [0.32, 0, 0]); // the root, where it meets the body
+      },
+      [0, 0.8, 0.26],
+    );
+    this.body.add(this.tail);
+
     for (const s of [-1, 1]) {
-      const leg = part((b) => {
-        b.box(0.2, 0.42, 0.22, '#457b9d', [s * 0.15, 0.62, 0]); // thigh in shorts
-        b.box(0.16, 0.4, 0.18, SKIN, [s * 0.15, 0.27, 0]); // shin
-        b.box(0.2, 0.08, 0.32, '#2a9d8f', [s * 0.15, 0.04, -0.04]); // slipper
-      }, 0.8);
+      const leg = part(
+        (b) => {
+          b.box(0.22, 0.46, 0.26, FUR, [s * 0.17, 0.4, 0]); // short, stout leg
+          b.box(0.26, 0.08, 0.36, FUR_DARK, [s * 0.17, 0.04, -0.04]); // big webbed foot
+        },
+        [0, 0.66, 0],
+      );
       this.legs.push(leg);
       this.body.add(leg);
-      const arm = part((b) => {
-        b.box(0.14, 0.5, 0.14, SKIN, [s * 0.36, 1.13, 0]);
-      }, 1.38);
+      const arm = part(
+        (b) => {
+          b.box(0.15, 0.44, 0.15, FUR, [s * 0.37, 1.12, 0]);
+          b.box(0.15, 0.08, 0.16, FUR_DARK, [s * 0.37, 0.88, -0.01]); // paw
+        },
+        [0, 1.34, 0],
+      );
       this.arms.push(arm);
       this.body.add(arm);
     }
@@ -75,6 +124,8 @@ export class Runner {
     );
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.02;
+    shadow.scale.set(1, 1.3, 1); // the tail lies behind, so the shadow is longer
+    shadow.position.z = 0.15;
     this.group.add(shadow);
 
     // The PRISM gem: a faceted crystal with a soft glow.
@@ -122,6 +173,7 @@ export class Runner {
     this.serving = false;
     this.body.scale.setScalar(1);
     for (const a of this.arms) a.rotation.set(0, 0, 0);
+    this.tail.rotation.set(0, 0, 0);
     this.body.rotation.set(0, 0, 0);
     this.body.position.set(0, 0, 0);
     this.group.visible = true;
@@ -154,6 +206,7 @@ export class Runner {
       this.body.rotation.z = k * 0.6;
       this.body.position.y = Math.sin(k * Math.PI) * 0.6;
       this.body.position.z = -k * 0.8;
+      this.tail.rotation.x = -k * 0.6; // the tail flops up as it goes over
     } else {
       this.phase += dt * (7 + cadence * 5);
       this.serveK += ((this.serving ? 1 : 0) - this.serveK) * Math.min(dt * 7, 1);
@@ -167,10 +220,17 @@ export class Runner {
       this.arms[0].rotation.z = this.serveK * 0.12;
       this.arms[1].rotation.z = -this.serveK * 0.12;
       let y = Math.abs(Math.cos(this.phase)) * 0.08 * run;
+      let wag = 0.32 * run;
       if (this.cheerT >= 0) {
         this.cheerT += dt;
         y += Math.abs(Math.sin(this.cheerT * 9)) * 0.22;
+        wag = 0.5; // happy beaver: a big fast wag while it bounces
       }
+      // The tail wags side to side in time with the stride and slaps up and down a little.
+      const wagPhase = this.cheerT >= 0 ? this.cheerT * 14 : this.phase;
+      this.tail.rotation.y = Math.sin(wagPhase) * wag;
+      this.tail.rotation.z = Math.sin(wagPhase) * wag * 0.4;
+      this.tail.rotation.x = Math.cos(wagPhase * 2) * 0.1 * run - this.serveK * 0.15;
       this.stretch = Math.max(0, this.stretch - dt * 5.5);
       const s = Math.sin(this.stretch * Math.PI) * 0.16; // out and back
       this.body.scale.set(1 - s * 0.7, 1 + s, 1 - s * 0.7);

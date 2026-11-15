@@ -1,10 +1,11 @@
-// "Closed" screen scene: a pixel-art forest where beavers wander, gnaw a log and swim in a pond.
+// The pixel-art forest behind the thank-you card and the closed screen: beavers wander, gnaw a log and swim in a
+// pond; birds fly, butterflies drift, leaves fall, a fish jumps and a bunny hops. celebrate() makes them all cheer.
 // Everything is drawn with filled rectangles on a tiny canvas that CSS scales up with crisp pixels,
 // so there are no image files. Positions are fractions of the canvas, so any phone shape works.
-import { reducedMotion } from '../game/perf';
+import { createPixelCanvas, hash, reducedMotion } from '../scene/pixelCanvas';
 
 const PX = 4; // CSS pixels per art pixel
-const TICK_MS = 1000 / 15; // chunky 15 fps, like an old game
+const FPS = 15; // chunky 15 fps, like an old game
 
 const C = {
   sky: ['#6fc8f2', '#8fd6f6', '#aee2f7', '#cdeef2', '#e8f4dc', '#fbf3c8'],
@@ -48,15 +49,19 @@ const C = {
   padLight: '#69c36a',
   flower: '#ff8fb0',
   mush: '#e8483f',
-  firefly: '#fff27a',
+  ray: '#fff7b0',
+  bunny: '#ffffff',
+  bunnyShade: '#e6dada',
+  fish: '#ff9f43',
+  fishLight: '#ffc27a',
+  autumn: '#e9a13b',
+  heart: '#ff4f7b',
+  heartLight: '#ffb3c6',
+  spark: '#fff27a',
 };
-
-/** Cheap deterministic noise so the grass looks scattered but never flickers. */
-function hash(x: number, y: number): number {
-  let n = (x * 374761393 + y * 668265263) | 0;
-  n = (n ^ (n >>> 13)) * 1274126177;
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
-}
+const FLOWERS = ['#ff8fb0', '#fff27a', '#ffffff', '#c9a4ff'];
+const BUTTERFLIES = ['#f15bb5', '#ffd166', '#9b5de5'];
+const CHEER = 1.8; // seconds a celebration lasts
 
 interface Chip {
   x: number;
@@ -66,36 +71,79 @@ interface Chip {
   life: number;
 }
 
-export function startForest(canvas: HTMLCanvasElement): () => void {
-  const ctx = canvas.getContext('2d')!;
-  let w = 0;
-  let h = 0;
-  const size = () => {
-    w = canvas.width = Math.max(40, Math.ceil(canvas.clientWidth / PX));
-    h = canvas.height = Math.max(60, Math.ceil(canvas.clientHeight / PX));
-    ctx.imageSmoothingEnabled = false;
-  };
-  size();
-  const ro = new ResizeObserver(size);
-  ro.observe(canvas);
+interface Bit {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  kind: 'heart' | 'spark';
+}
 
-  const rect = (x: number, y: number, rw: number, rh: number, c: string) => {
-    ctx.fillStyle = c;
-    ctx.fillRect(Math.round(x), Math.round(y), rw, rh);
-  };
+interface Leaf {
+  x: number;
+  y: number;
+  ph: number;
+  fast: boolean;
+}
 
-  // ---------- scene state ----------
+export interface ForestOptions {
+  /** Fraction of the height at the bottom that the page covers with its own buttons: creatures stay above it. */
+  bottomInset?: number;
+}
+
+export interface ForestHandle {
+  /** Stops the animation loop. Safe to call more than once. */
+  stop(): void;
+  /** Every creature answers: beavers jump, the bunny flips, the fish leaps, birds and butterflies swirl. */
+  celebrate(): void;
+}
+
+export function startForest(canvas: HTMLCanvasElement, opts: ForestOptions = {}): ForestHandle {
+  const px = createPixelCanvas(canvas, { scale: PX, fps: FPS, minWidth: 40, minHeight: 60 });
+  const { rect, ellipse } = px;
+  // Art size and clock, refreshed from px at the start of every draw.
+  let w = px.w;
+  let h = px.h;
   let t = 0; // seconds
   let frame = 0;
+
+  // ---------- scene state ----------
   const chips: Chip[] = [];
   const logLen = { v: 1 }; // fraction of the log left
   let logReset = 0;
+  const inset = opts.bottomInset ?? 0;
   const walker = { x: 0.15, dir: 1, carry: true };
   const swimmer = { x: 0.35, dir: 1, slap: 0 };
+  type Bunny = { x: number; dir: number; ph: number; lo: number; hi: number; y: number };
+  // The main bunny keeps to the far right, clear of the log and the gnawing beaver; a second one lives in the meadow
+  // of the roomy layout (closed screen).
+  const roomy = inset === 0;
+  const bunnies: Bunny[] = [{ x: 0.86, dir: -1, ph: 0, lo: 0.82, hi: 0.93, y: 0.9 }];
+  if (roomy) bunnies.push({ x: 0.3, dir: 1, ph: 2, lo: 0.14, hi: 0.46, y: 0.72 });
+  const fish = { t: -1, next: 2.5 };
+  const bits: Bit[] = [];
+  const leaves: Leaf[] = [];
+  let cheer = 0; // seconds of celebration left
+  let floor = 0; // art y of the bottom of the play area: creatures live above it
+  const dt = 1 / FPS;
+
+  /** 0..1: how far through the current celebration we are (1 when none). */
+  const cheerP = () => 1 - cheer / CHEER;
+  /** A bounce for a creature during a celebration; `phase` makes them jump out of step. */
+  function hop(phase: number, height = 8): number {
+    if (cheer <= 0 || reducedMotion) return 0;
+    const k = cheer / CHEER;
+    return Math.round(Math.abs(Math.sin(cheerP() * Math.PI * 4 + phase)) * height * Math.min(1, k * 2.5));
+  }
+  function emit(x: number, y: number, kind: Bit['kind']): void {
+    if (bits.length > 70) return;
+    bits.push({ x, y, vx: (Math.random() - 0.5) * 1.2, vy: -(0.6 + Math.random() * 0.9), life: 1, kind });
+  }
 
   // ---------- pieces ----------
   const horizon = () => Math.floor(h * 0.36);
-  const pond = () => ({ cx: w * 0.5, cy: h * 0.66, rx: w * 0.4, ry: h * 0.07 });
+  const pond = () => (roomy ? { cx: w * 0.5, cy: h * 0.5, rx: w * 0.4, ry: h * 0.085 } : { cx: w * 0.5, cy: floor * 0.66, rx: w * 0.4, ry: h * 0.07 });
 
   function drawSky(): void {
     const hy = horizon();
@@ -103,10 +151,31 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
     C.sky.forEach((c, i) => rect(0, i * band, w, band + 1, c));
     // sun with a pixel halo
     const sx = Math.round(w * 0.72);
-    const sy = Math.round(hy * 0.62);
+    const sy = Math.round(hy * 0.76);
     for (let dy = -7; dy <= 7; dy++) {
       const half = Math.round(Math.sqrt(49 - dy * dy));
       rect(sx - half, sy + dy, half * 2 + 1, 1, Math.abs(dy) > 5 ? C.sunEdge : C.sun);
+    }
+    // Twinkling rays; they stretch while everyone is celebrating.
+    if (reducedMotion || frame % 30 < 15 || cheer > 0) {
+      const far = cheer > 0 && !reducedMotion ? 15 : 11;
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) rect(sx + dx * far - 1, sy + dy * far - 1, 2, 2, C.ray);
+      if (cheer > 0 && !reducedMotion) for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) rect(sx + dx * 11 - 1, sy + dy * 11 - 1, 2, 2, C.ray);
+    }
+  }
+
+  function drawBirds(): void {
+    const hy = horizon();
+    const boost = cheer > 0 && !reducedMotion ? 2.2 : 1;
+    for (let i = 0; i < 3; i++) {
+      const span = w + 20;
+      const x = reducedMotion ? hash(i, 61) * w : ((t * (5 + i * 2) * boost + i * 40 + hash(i, 62) * 30) % span) - 10;
+      const base = [h * 0.09, h * 0.19, hy * 0.85][i];
+      const y = Math.round(base + (reducedMotion ? 0 : Math.sin(t * 2 + i) * 2 - (cheer > 0 ? Math.sin(cheerP() * Math.PI) * 4 : 0)));
+      const up = reducedMotion ? true : (frame + i * 3) % (cheer > 0 ? 4 : 8) < (cheer > 0 ? 2 : 4);
+      rect(x, y + (up ? 0 : 1), 2, 1, C.ink);
+      rect(x + 2, y + (up ? 1 : 0), 1, 1, C.ink);
+      rect(x + 3, y + (up ? 0 : 1), 2, 1, C.ink);
     }
   }
 
@@ -190,16 +259,10 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
 
   function drawPond(): void {
     const p = pond();
-    const ellipse = (rx: number, ry: number, color: string, dy = 0) => {
-      for (let y = -Math.round(ry); y <= Math.round(ry); y++) {
-        const half = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry))));
-        rect(p.cx - half, p.cy + y + dy, half * 2, 1, color);
-      }
-    };
-    ellipse(p.rx + 3, p.ry + 3, C.dirtDark, 1);
-    ellipse(p.rx + 2, p.ry + 2, C.dirt);
-    ellipse(p.rx, p.ry, C.water);
-    ellipse(p.rx * 0.78, p.ry * 0.7, C.waterMid, -1);
+    ellipse(p.cx, p.cy + 1, p.rx + 3, p.ry + 3, C.dirtDark);
+    ellipse(p.cx, p.cy, p.rx + 2, p.ry + 2, C.dirt);
+    ellipse(p.cx, p.cy, p.rx, p.ry, C.water);
+    ellipse(p.cx, p.cy - 1, p.rx * 0.78, p.ry * 0.7, C.waterMid);
     // Shimmer: light pixels that blink on and off at fixed spots.
     for (let i = 0; i < 26; i++) {
       const ax = p.cx + (hash(i, 1) - 0.5) * p.rx * 1.7;
@@ -240,7 +303,7 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
   }
 
   function drawLog(): void {
-    const baseY = Math.round(h * 0.9);
+    const baseY = Math.round(floor * 0.9);
     const x0 = Math.round(w * 0.08);
     const full = Math.round(w * 0.46);
     const len = Math.max(0, Math.round(full * logLen.v));
@@ -301,14 +364,16 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
     if (!reducedMotion) walker.x += walker.dir * speed * (1 / 15);
     if (walker.x > 0.86) walker.dir = -1;
     if (walker.x < 0.12) walker.dir = 1;
-    const y = Math.round(h * 0.8);
-    const step = reducedMotion ? 0 : Math.round(Math.sin(frame * 0.9) * 1.5);
+    const y = Math.round(floor * 0.8);
+    const j = hop(0);
+    const step = reducedMotion || j ? 0 : Math.round(Math.sin(frame * 0.9) * 1.5);
     const bob = reducedMotion ? 0 : frame % 4 < 2 ? 0 : -1;
-    beaver(w * walker.x, y + bob, walker.dir, { step, stick: walker.carry });
+    beaver(w * walker.x, y + bob - j, walker.dir, { step, stick: walker.carry && !j });
+    if (j && frame % 3 === 0) emit(w * walker.x, y - j - 6, 'heart');
   }
 
   function drawGnawer(): void {
-    const baseY = Math.round(h * 0.9);
+    const baseY = Math.round(floor * 0.9);
     const x0 = Math.round(w * 0.08);
     const full = Math.round(w * 0.46);
     if (logReset > 0) {
@@ -324,10 +389,12 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
     drawLog();
     if (logReset > 0) return;
     const end = x0 + Math.round(full * logLen.v);
-    const biting = frame % 6 < 3;
-    const hd = reducedMotion ? 0 : biting ? 2 : -1;
+    const j = hop(2);
+    const biting = frame % 6 < 3 && !j;
+    const hd = reducedMotion ? 0 : j ? -1 : biting ? 2 : -1;
     // The beaver faces left toward the log, sitting upright-ish with its head bobbing into the wood.
-    beaver(end + 15, baseY - 6, -1, { sit: true, headDy: hd });
+    beaver(end + 15, baseY - 6 - j, -1, { sit: true, headDy: hd });
+    if (j && frame % 3 === 0) emit(end + 17, baseY - 14 - j, 'heart');
     if (!reducedMotion && biting && frame % 6 === 0) {
       for (let i = 0; i < 3; i++) chips.push({ x: end + 1, y: baseY - 4, vx: -(0.3 + Math.random() * 1.2), vy: -(1 + Math.random() * 1.8), life: 1 });
     }
@@ -342,8 +409,10 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
     if (swimmer.x < cx - lim) swimmer.dir = 1;
     const bob = reducedMotion ? 0 : Math.round(Math.sin(t * 3));
     const x = Math.round(w * swimmer.x);
-    const y = Math.round(p.cy + p.ry * 0.1) + bob;
+    const j = hop(1, 6);
+    const y = Math.round(p.cy + p.ry * 0.1) + bob - j;
     const d = swimmer.dir;
+    if (j && frame % 3 === 0) emit(x, y - 5, 'heart');
     // wake ripples
     const wob = Math.floor(frame / 3) % 3;
     for (let i = 0; i < 3; i++) {
@@ -362,7 +431,7 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
     swimmer.slap += 1 / 15;
     const slapAt = swimmer.slap % 6;
     const tx = x - d * 8;
-    if (!reducedMotion && slapAt > 4.2 && slapAt < 5) {
+    if (!reducedMotion && ((slapAt > 4.2 && slapAt < 5) || (cheer > 0 && frame % 6 < 3))) {
       rect(tx, y - 4, 2, 5, C.furDark);
       rect(tx - 1, y - 6, 4, 2, C.furDark);
       for (const [dx, dy] of [[-3, -7], [4, -8], [-5, -4], [6, -5], [0, -10]]) rect(tx + dx, y + dy, 1, 1, C.foam);
@@ -385,72 +454,249 @@ export function startForest(canvas: HTMLCanvasElement): () => void {
   function drawFront(): void {
     const sway = reducedMotion ? 0 : Math.sin(t * 1.1);
     // big trees framing the left and right edges
-    oak(Math.round(w * 0.06), Math.round(h * 0.55), Math.round(h * 0.2), 13, sway * 1.2);
-    pine(Math.round(w * 0.95), Math.round(h * 0.5), Math.round(h * 0.34), sway);
+    const shake = cheer > 0 && !reducedMotion ? Math.sin(t * 14) * 1.2 : 0;
+    oak(Math.round(w * 0.06), Math.round(h * 0.55), Math.round(h * 0.2), 13, sway * 1.2 + shake);
+    pine(Math.round(w * 0.95), Math.round(h * 0.5), Math.round(h * 0.34), sway + shake);
     // tufts, flowers and a toadstool in the grass
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < (roomy ? 40 : 24); i++) {
       const gx = Math.round(hash(i, 11) * w);
-      const gy = Math.round(h * 0.72 + hash(i, 12) * h * 0.26);
-      if (gy > h * 0.88 && gx < w * 0.58) continue; // keep the log area clear
+      const top = roomy ? 0.64 : 0.72;
+      const gy = Math.round(floor * top + hash(i, 12) * (h - floor * top));
+      if (gy > floor * 0.88 && gy < floor * 0.95 && gx < w * 0.58) continue; // keep the log area clear
       rect(gx, gy - 2, 1, 3, C.grassDark);
       rect(gx + 1, gy - 3, 1, 4, C.grassLight);
       rect(gx + 2, gy - 1, 1, 2, C.grassDark);
-      if (i % 5 === 0) rect(gx + 1, gy - 5, 2, 2, C.flower);
+      if (i % 3 === 0) {
+        const amp = cheer > 0 ? 2.2 : 0.8; // flowers nod harder when everyone cheers
+        const s = reducedMotion ? 0 : Math.round(Math.sin(t * (cheer > 0 ? 7 : 2) + i) * amp);
+        rect(gx + s, gy - 6, 3, 3, FLOWERS[i % FLOWERS.length]);
+        rect(gx + 1 + s, gy - 5, 1, 1, '#ffb000');
+      }
     }
-    const mx = Math.round(w * 0.82);
-    const my = Math.round(h * 0.93);
+    const mx = Math.round(w * 0.04);
+    const my = Math.round(floor * 0.97);
     rect(mx, my - 5, 5, 2, C.mush);
     rect(mx + 1, my - 6, 3, 1, C.mush);
     rect(mx + 1, my - 5, 1, 1, C.tooth);
     rect(mx + 2, my - 3, 1, 3, C.cream);
   }
 
-  function drawFireflies(): void {
-    for (let i = 0; i < 9; i++) {
-      const x = hash(i, 21) * w + Math.sin(t * 0.6 + i * 2) * 5;
-      const y = h * 0.4 + hash(i, 22) * h * 0.4 + Math.cos(t * 0.8 + i) * 4;
-      if (Math.sin(t * 2 + i * 1.7) > 0.2) rect(x, y, 1, 1, C.firefly);
+  // ---------- meadow (roomy layout only) ----------
+  function bush(x: number, y: number, r: number, berries: string): void {
+    ellipse(x, y + 1, r + 1, r * 0.62, C.leafDark);
+    ellipse(x, y, r, r * 0.6, C.leafMid);
+    ellipse(x - r * 0.25, y - r * 0.2, r * 0.55, r * 0.3, C.leafLight);
+    for (let i = 0; i < 6; i++) rect(x + (hash(i, Math.round(x)) - 0.5) * r * 1.5, y + (hash(i, 9) - 0.4) * r * 0.7, 1, 1, berries);
+  }
+  function rock(x: number, y: number, rw: number): void {
+    rect(x, y, rw, 3, '#9aa0a6');
+    rect(x + 1, y - 1, rw - 2, 1, '#b8bec4');
+    rect(x, y + 3, rw, 1, '#6e747a');
+    rect(x + 1, y, 2, 1, '#d4d9dd');
+  }
+  function drawPath(): void {
+    if (!roomy) return;
+    // a dirt track winding from the pond down to the bottom of the screen
+    for (let y = Math.round(h * 0.6); y < h; y++) {
+      const cx = Math.round(w * 0.62 + Math.sin(y * 0.09) * 5);
+      rect(cx - 6, y, 13, 1, C.dirtDark);
+      rect(cx - 5, y, 11, 1, C.dirt);
+      if (hash(y, 3) > 0.8) rect(cx - 3 + Math.round(hash(y, 4) * 6), y, 1, 1, C.dirtDark);
+    }
+  }
+  function drawMeadow(): void {
+    if (!roomy) return;
+    bush(w * 0.1, h * 0.66, 8, '#e8483f');
+    bush(w * 0.9, h * 0.65, 9, '#8f5bd6');
+    bush(w * 0.82, h * 0.76, 6, '#e8483f');
+    rock(w * 0.3, h * 0.67, 6);
+    rock(w * 0.33, h * 0.675, 4);
+    rock(w * 0.74, h * 0.695, 5);
+    // flower patches
+    for (const [fx, fy, c0] of [[0.22, 0.72, 0], [0.5, 0.7, 1], [0.78, 0.84, 2], [0.4, 0.8, 3]] as const) {
+      for (let i = 0; i < 6; i++) {
+        const x = w * fx + (hash(i, 31 + c0) - 0.5) * 14;
+        const y = h * fy + (hash(i, 32 + c0) - 0.5) * 6;
+        const sw = reducedMotion ? 0 : Math.round(Math.sin(t * (cheer > 0 ? 7 : 2) + i + c0));
+        rect(x, y - 1, 1, 3, C.grassDark);
+        rect(x + sw, y - 3, 2, 2, FLOWERS[(i + c0) % FLOWERS.length]);
+      }
     }
   }
 
+  // ---------- new life ----------
+  function drawBunny(bunny: Bunny): void {
+    const speedUp = cheer > 0 ? 0 : 1;
+    if (!reducedMotion && speedUp) {
+      bunny.ph += 0.12;
+      bunny.x += bunny.dir * (Math.max(0, Math.sin(bunny.ph)) * 0.0035);
+      if (bunny.x > bunny.hi) bunny.dir = -1;
+      if (bunny.x < bunny.lo) bunny.dir = 1;
+    }
+    const base = floor * bunny.y;
+    let q = 0;
+    let lift = reducedMotion ? 0 : Math.round(Math.abs(Math.sin(bunny.ph)) * 3);
+    if (cheer > 0 && !reducedMotion) {
+      const p = cheerP();
+      if (p < 0.7) {
+        const k = p / 0.7; // two backflips in the first 70% of the cheer
+        lift = Math.round(Math.sin(k * Math.PI) * 15);
+        q = Math.floor(k * 8) % 4;
+      }
+    }
+    const x = Math.round(w * bunny.x);
+    const y = Math.round(base - lift);
+    const parts: [number, number, number, number, string][] = [
+      [0, 0, 6, 4, C.bunny],
+      [0, 3, 6, 1, C.bunnyShade],
+      [4, -2, 3, 3, C.bunny],
+      [4, -5, 1, 3, C.bunny],
+      [6, -5, 1, 3, C.bunny],
+      [5, -4, 1, 2, C.pink],
+      [6, -1, 1, 1, C.ink],
+      [-1, 1, 1, 2, C.bunnyShade],
+    ];
+    for (const [rx, ry, rw, rh, c] of parts) {
+      // mirror by direction, then rotate by q quarter turns around the middle of the body
+      const px0 = bunny.dir > 0 ? rx - 3 : -(rx + rw) + 3;
+      const py0 = ry - 1;
+      const pts = [[px0, py0], [px0 + rw, py0 + rh]].map(([ax, ay]) => {
+        let X = ax;
+        let Y = ay;
+        for (let i = 0; i < q; i++) [X, Y] = [-Y, X];
+        return [X, Y];
+      });
+      const lx = Math.min(pts[0][0], pts[1][0]);
+      const ly = Math.min(pts[0][1], pts[1][1]);
+      rect(x + lx, y + ly, Math.max(1, Math.abs(pts[1][0] - pts[0][0])), Math.max(1, Math.abs(pts[1][1] - pts[0][1])), c);
+    }
+    if (cheer > 0 && frame % 4 === 0 && !reducedMotion) emit(x, y - 8, 'spark');
+  }
+
+  function drawFish(): void {
+    if (reducedMotion) return;
+    const p = pond();
+    if (fish.t < 0) {
+      fish.next -= dt;
+      if (fish.next <= 0) fish.t = 0;
+    } else {
+      fish.t += dt;
+      if (fish.t > 1.5) {
+        fish.t = -1;
+        fish.next = cheer > 0 ? 0.5 : 4 + hash(frame, 5) * 2;
+      }
+    }
+    if (fish.t < 0) return;
+    const ph = fish.t / 1.1;
+    const fx = Math.round(p.cx - p.rx * 0.55 + ph * p.rx * 0.35);
+    if (ph < 1) {
+      const fy = Math.round(p.cy - Math.sin(ph * Math.PI) * 13);
+      rect(fx, fy, 4, 2, C.fish);
+      rect(fx + 1, fy, 2, 1, C.fishLight);
+      rect(fx - 2, fy - 1, 2, 4, C.fish);
+      rect(fx + 3, fy, 1, 1, C.ink);
+    } else {
+      const sx = Math.round(p.cx - p.rx * 0.55 + 0.35 * p.rx);
+      for (const [dx, dy] of [[-2, -2], [2, -3], [0, -4], [-4, -1], [4, -1]]) rect(sx + dx, p.cy + dy, 1, 1, C.foam);
+    }
+  }
+
+  function drawButterflies(): void {
+    const swirl = cheer > 0 && !reducedMotion;
+    for (let i = 0; i < 3; i++) {
+      const sp = swirl ? 2.6 : 0.7;
+      const ph = reducedMotion ? 0 : t;
+      const x = w * (0.2 + i * 0.28) + Math.sin(ph * sp + i * 2) * w * 0.12;
+      const y = floor * (0.64 + i * 0.1) + Math.sin(ph * sp * 1.8 + i) * 6 - (swirl ? Math.sin(cheerP() * Math.PI) * 8 : 0);
+      const open = reducedMotion ? true : (frame + i) % (swirl ? 2 : 4) < (swirl ? 1 : 2);
+      const c = BUTTERFLIES[i];
+      rect(x, y, 1, 2, C.ink);
+      if (open) {
+        rect(x - 2, y - 1, 2, 3, c);
+        rect(x + 1, y - 1, 2, 3, c);
+      } else {
+        rect(x - 1, y - 1, 1, 3, c);
+        rect(x + 1, y - 1, 1, 3, c);
+      }
+    }
+  }
+
+  function drawLeaves(): void {
+    if (reducedMotion) return;
+    const gap = cheer > 0 ? 3 : 14;
+    if (frame % gap === 0 && leaves.length < 40) {
+      const fromOak = Math.random() < 0.5;
+      leaves.push({ x: fromOak ? w * 0.06 + (Math.random() - 0.5) * 18 : w * 0.95 + (Math.random() - 0.5) * 10, y: h * 0.28 + Math.random() * h * 0.08, ph: Math.random() * 6, fast: cheer > 0 });
+    }
+    for (const l of leaves) {
+      l.y += l.fast ? 0.9 : 0.5;
+      l.x += Math.sin(l.y * 0.15 + l.ph) * 0.5 + 0.15;
+      rect(l.x, l.y, 2, 1, l.ph > 3 ? C.autumn : C.leafLight);
+    }
+    for (let i = leaves.length - 1; i >= 0; i--) if (leaves[i].y > h) leaves.splice(i, 1);
+  }
+
+  function drawBits(): void {
+    for (const b of bits) {
+      b.life -= dt * 0.9;
+      b.x += b.vx;
+      b.y += b.vy;
+      if (b.kind === 'heart') {
+        rect(b.x, b.y, 1, 1, C.heart);
+        rect(b.x + 2, b.y, 1, 1, C.heart);
+        rect(b.x, b.y + 1, 3, 1, C.heart);
+        rect(b.x + 1, b.y + 2, 1, 1, C.heart);
+        rect(b.x, b.y, 1, 1, C.heartLight);
+      } else {
+        rect(b.x, b.y, 1, 1, C.spark);
+        rect(b.x - 1, b.y + 1, 3, 1, C.spark);
+        rect(b.x, b.y + 2, 1, 1, C.spark);
+      }
+    }
+    for (let i = bits.length - 1; i >= 0; i--) if (bits[i].life <= 0) bits.splice(i, 1);
+  }
+
   // ---------- loop ----------
-  let last = performance.now();
-  let acc = 0;
-  let raf = 0;
-  let alive = true;
-  const render = () => {
+  px.run((time, n) => {
+    w = px.w;
+    h = px.h;
+    t = time;
+    frame = n;
+    if (n > 0 && !canvas.isConnected) {
+      px.stop(); // the page removed us without calling stop(): do not leak the loop
+      return;
+    }
+    floor = Math.round(h * (1 - inset));
+    if (cheer > 0) cheer = Math.max(0, cheer - dt);
     drawSky();
     drawClouds();
+    drawBirds();
     drawHills();
     drawBackTrees();
     drawGround();
+    drawPath();
     drawPond();
     drawLodge();
+    drawMeadow();
+    drawFish();
     drawSwimmer();
+    for (const b of bunnies) drawBunny(b);
     drawWalker();
     drawGnawer();
     drawChips();
     drawFront();
-    drawFireflies();
-  };
-  const loop = (now: number) => {
-    if (!alive) return;
-    acc += Math.min(now - last, 250);
-    last = now;
-    if (acc >= TICK_MS) {
-      acc %= TICK_MS;
-      t += 1 / 15;
-      frame++;
-      render();
-    }
-    raf = requestAnimationFrame(loop);
-  };
-  render();
-  raf = requestAnimationFrame(loop);
+    drawButterflies();
+    drawLeaves();
+    drawBits();
+  });
 
-  return () => {
-    alive = false;
-    cancelAnimationFrame(raf);
-    ro.disconnect();
+  return {
+    stop: () => px.stop(),
+    celebrate() {
+      if (reducedMotion) return;
+      cheer = CHEER;
+      fish.next = Math.min(fish.next, 0.2);
+      for (let i = 0; i < 14; i++) emit(Math.random() * w, floor * (0.6 + Math.random() * 0.3), i % 2 ? 'heart' : 'spark');
+    },
   };
 }

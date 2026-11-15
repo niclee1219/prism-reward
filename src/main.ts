@@ -6,6 +6,7 @@ import { suggestNickname } from './content/nicknames';
 import { attachInput } from './game/input';
 import { RunSim, type RunResult } from './game/sim/RunSim';
 import { World } from './game/three/World';
+import { openLearn, type LearnHandle } from './learn/learn';
 import { ApiError, claimName } from './net/api';
 import { deviceId, local, uuid } from './net/device';
 import { fetchOpen } from './net/status';
@@ -122,7 +123,7 @@ function showHome(): void {
 attachInput(stage, (dir) => sim.move(dir));
 
 // Stop the browser's own gestures (pull-to-refresh, pinch, double-tap zoom) on the game page.
-document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).closest('.strip, #screen-results .beat, .recipe-list, .lb-body')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!(e.target as HTMLElement).closest('.strip, #screen-results .beat, .recipe-list, .lb-body, .learn-band')) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
 
@@ -136,13 +137,42 @@ let siteOpen = true;
 const closedScreen = $('screen-closed');
 function syncClosed(): void {
   if (siteOpen) hideClosed(closedScreen);
-  else if (!startScreen.hidden) showClosed(closedScreen);
+  // Someone part-way through Learn finishes it first, like a run: the closed screen waits for the home screen.
+  else if (!startScreen.hidden && !learn) showClosed(closedScreen);
 }
 async function refreshStatus(): Promise<void> {
   siteOpen = await fetchOpen();
   syncClosed();
 }
-void refreshStatus();
+
+// Learn: how PRISM works. A phone's first visit opens it over the home screen; finishing or skipping it sets the
+// per-phone flag, so later visits land on home (which links back to it). It never opens while the site is closed,
+// and the flag is only set while the site is open.
+let learn: LearnHandle | null = null;
+function showLearn(): void {
+  if (learn || !siteOpen) return;
+  world.paused = true; // Learn covers the street completely: no need to keep drawing it
+  learn = openLearn($('screen-learn'), {
+    onSeen: () => {
+      if (siteOpen) local.seenLearn = true;
+    },
+    onClose: () => {
+      learn = null;
+      world.paused = false;
+      syncClosed();
+    },
+  });
+}
+const firstVisit = !local.seenLearn;
+if (firstVisit) showLearn();
+// The first status check decides: if staff have closed the site, a first visit gets only the closed screen, so the
+// Learn that opened while the check was in flight goes away untouched (the flag stays unset). Later closings let
+// someone already in Learn finish it.
+void refreshStatus().then(() => {
+  if (!siteOpen && learn && firstVisit && !learn.touched) {
+    learn.close();
+  }
+});
 setInterval(() => void refreshStatus(), 15_000);
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void refreshStatus());
 
@@ -179,6 +209,8 @@ async function play(): Promise<void> {
   }
   local.nickname = nickname;
   nickInput.blur();
+  // The controls slides show once, on the first PLAY tap; closing them carries straight on into the run.
+  if (!local.seenHowto) await new Promise<void>((done) => showHowto($('screen-howto'), { onClose: done, playing: true }));
   // The start screen whooshes away instead of blinking out.
   if (!startScreen.hidden) {
     startScreen.classList.add('leaving');
@@ -228,5 +260,5 @@ function finish(result: RunResult, nickname: string): void {
 $('play').addEventListener('click', () => void play());
 $('open-board').addEventListener('click', () => showLeaderboard($('screen-board')));
 $('open-howto').addEventListener('click', () => showHowto($('screen-howto')));
-if (!local.seenHowto) showHowto($('screen-howto'));
+$('open-learn').addEventListener('click', () => showLearn());
 void flush(); // send anything left over from an earlier visit

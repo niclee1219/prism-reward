@@ -1,10 +1,10 @@
-// The last card: a thank-you from the beaver, plus a confetti button and emoji reactions that
+// The last card: the pixel forest as a full-screen backdrop, a thank-you on a wooden sign, plus a confetti button and emoji reactions that
 // also show up on the big /leaderboard screen.
 import { buzz } from '../game/haptics';
 import { EMOJI_KINDS, REACTION_EMOJI, sendReaction, type ReactionKind } from '../net/reactions';
-import { mountBeaver } from './beaver';
 import { confetti } from './confetti';
 import { floatEmoji } from './floaty';
+import { startForest } from './forest';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -13,28 +13,31 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''):
   return e;
 }
 
-/** Builds the thank-you card into `b`. `screen` is the full results screen, used as the confetti canvas. */
-export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entered: boolean; first: boolean }): void {
+/**
+ * Builds the thank-you card into `b`. `screen` is the full results screen: the forest is its backdrop and it is the
+ * confetti canvas. Returns a cleanup that stops the forest and removes the backdrop; call it when leaving the card.
+ */
+export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entered: boolean; first: boolean }): () => void {
   b.classList.add('thanks');
-  b.append(el('h2', 'thanks-title', 'THANK YOU!'));
-  const stage = el('div', 'beaver-stage');
-  b.append(stage);
-  b.append(
-    el(
-      'p',
-      'thanks-sub',
-      opts.entered ? "You're in the draw for a $10 Starbucks gift card. Good luck!" : 'Thanks for playing PRISM Run!',
-    ),
+  const canvas = el('canvas', 'forest forest-backdrop pix-crisp');
+  canvas.setAttribute('aria-hidden', 'true');
+  screen.prepend(canvas);
+  screen.classList.add('thanks-on');
+  // Keep the creatures clear of the buttons and navigation along the bottom.
+  const forest = startForest(canvas, { bottomInset: 0.27 });
+
+  const sign = el('div', 'pix-sign thanks-sign', 'THANK YOU!');
+  sign.append(
+    el('small', '', opts.entered ? "You're in the draw for a $10 Starbucks gift card. Good luck!" : 'Thanks for playing PRISM Run!'),
   );
+  b.append(sign);
 
   const layer = el('div', 'react-layer');
   layer.setAttribute('aria-hidden', 'true');
   b.append(layer);
 
-  const beaver = mountBeaver(stage);
-
   const bar = el('div', 'react-bar');
-  const party = el('button', 'btn btn-confetti', '🎊 CONFETTI!');
+  const party = el('button', 'pix-btn btn-confetti', '🎊 CONFETTI!');
   party.type = 'button';
   party.id = 'confetti-btn';
   party.addEventListener('click', () => {
@@ -42,13 +45,13 @@ export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entere
     const r = party.getBoundingClientRect();
     confetti(screen, 150, { x: r.left - s.left + r.width / 2, y: r.top - s.top });
     buzz('party');
-    beaver.cheer();
+    forest.celebrate();
     sendReaction('confetti');
   });
 
   const row = el('div', 'react-row');
   for (const kind of EMOJI_KINDS) {
-    const btn = el('button', 'react-btn', REACTION_EMOJI[kind]);
+    const btn = el('button', 'pix-btn pix-btn--icon react-btn', REACTION_EMOJI[kind]);
     btn.type = 'button';
     btn.dataset.kind = kind;
     btn.setAttribute('aria-label', `React ${kind}`);
@@ -63,12 +66,19 @@ export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entere
     const r = from.getBoundingClientRect();
     floatEmoji(layer, REACTION_EMOJI[kind], { x: r.left - l.left + r.width / 2, y: r.top - l.top });
     buzz('pop');
+    forest.celebrate();
     sendReaction(kind);
   }
 
   if (opts.first) {
     confetti(screen, 200);
     buzz('win');
-    beaver.cheer();
+    forest.celebrate();
   }
+
+  return () => {
+    forest.stop();
+    canvas.remove();
+    screen.classList.remove('thanks-on');
+  };
 }

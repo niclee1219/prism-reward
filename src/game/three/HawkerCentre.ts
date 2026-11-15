@@ -8,7 +8,7 @@
 // Draw-call budget per segment: 1 lit mesh + 1 self-lit mesh + 1 steam mesh + 2 signs.
 import * as THREE from 'three';
 import { WORLD } from '../../config';
-import { BEND, Builder, GLOW_MAT, Quads, VC_MAT, bend, canvasTexture, haloMaterial, whiteGlow } from './build';
+import { BEND, Builder, GLOW_MAT, PIXEL_FONT, Quads, VC_MAT, bend, canvasTexture, haloMaterial, pixelTextTexture, whiteGlow } from './build';
 
 const SEG_LEN = 6;
 const SEGMENTS = 10;
@@ -45,22 +45,23 @@ const hash = (n: number) => {
 function signTexture(name: string, i: number): THREE.CanvasTexture {
   const accent = SIGN_ACCENT[i % SIGN_ACCENT.length];
   const yellow = i % 3 === 0;
-  return canvasTexture(512, 112, (ctx) => {
+  // Pixel lettering, big and blocky, so the near signs still read in the low-res street.
+  return pixelTextTexture(512, 112, (ctx) => {
     ctx.fillStyle = yellow ? '#f5c031' : CREAM;
     ctx.fillRect(0, 0, 512, 112);
     ctx.strokeStyle = accent;
     ctx.lineWidth = 8;
     ctx.strokeRect(5, 5, 502, 102);
     ctx.fillStyle = '#1b1b2f';
-    ctx.font = '900 50px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.font = `38px ${PIXEL_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(name, 256, 48, 450);
+    ctx.fillText(name, 256, 46, 470);
     // Unit number in a coloured tab, the way real hawker stalls are labelled.
     ctx.fillStyle = accent;
     ctx.fillRect(176, 78, 160, 26);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 19px system-ui, sans-serif';
+    ctx.font = `14px ${PIXEL_FONT}`;
     ctx.fillText(`#01-${String(10 + i * 3).padStart(2, '0')}`, 256, 92);
   });
 }

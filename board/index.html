@@ -8,6 +8,7 @@
     <title>PRISM Run · Leaderboard</title>
   </head>
   <body class="board-page">
+    <canvas id="sky" class="pix-crisp" aria-hidden="true"></canvas>
     <main class="board">
       <section class="board-left">
         <header>
@@ -18,12 +19,15 @@
           <div class="king-label">👑 KING OF THE HILL</div>
           <div class="king-name" id="king-name"></div>
         </div>
-        <ol class="rows" id="rows"></ol>
-        <p class="empty" id="empty">No scores yet. Be the first!</p>
+        <div class="rows-wrap pix-panel pix-panel--night">
+          <ol class="rows" id="rows"></ol>
+          <p class="empty pix-display" id="empty">NO SCORES YET.<br />BE THE FIRST!</p>
+        </div>
       </section>
-      <aside class="board-right">
+      <div class="sky-gap" id="sky-gap" aria-hidden="true"></div>
+      <aside class="board-right pix-panel pix-panel--night pix-panel--gold">
         <div class="qr-box"><canvas id="qr"></canvas></div>
-        <div class="scan">SCAN TO PLAY</div>
+        <div class="scan pix-display">SCAN TO PLAY</div>
         <div class="tag">Talk to your code.<br />Understand it in minutes.</div>
         <div class="plays"><b id="plays">0</b><span>plays so far</span></div>
       </aside>

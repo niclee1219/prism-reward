@@ -10,14 +10,12 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''):
   return e;
 }
 
-const MEDAL = ['🥇', '🥈', '🥉'];
-
 function row(rank: number, name: string, score: number, opts: { dish?: string | null; served?: boolean; you?: boolean; delay: number }): HTMLLIElement {
   const li = el('li', `lb-row${opts.you ? ' you' : ''}${rank <= 3 ? ` top${rank}` : ''}`);
   li.style.setProperty('--d', `${opts.delay}ms`);
   const dish = DISHES.find((d) => d.id === opts.dish);
   li.append(
-    el('span', 'lb-rank', rank <= 3 ? MEDAL[rank - 1] : `#${rank}`),
+    el('span', 'lb-rank', `#${rank}`), // the top 3 are coloured gold, silver, bronze (as on the big screen)
     el('span', 'lb-name', `${dish ? `${dish.emoji} ` : ''}${name}${opts.served ? ' 🍽️' : ''}${opts.you ? ' (you)' : ''}`),
     el('span', 'lb-score', score.toLocaleString('en')),
   );
@@ -56,7 +54,7 @@ export function mountLeaderboard(into: HTMLElement, limit = 10): void {
       if (!into.isConnected) return;
       list.innerHTML = '';
       const msg = el('li', 'lb-empty', "Can't reach the leaderboard.");
-      const retry = el('button', 'link-btn', 'Try again');
+      const retry = el('button', 'pix-btn pix-btn--cream link-btn', 'TRY AGAIN');
       retry.type = 'button';
       retry.addEventListener('click', () => mountLeaderboard(into, limit));
       msg.append(document.createElement('br'), retry);
@@ -72,7 +70,7 @@ export function showLeaderboard(root: HTMLElement): void {
   root.hidden = false;
   const title = el('h2', 'ov-title', '🏆 LEADERBOARD');
   const body = el('div', 'lb-body');
-  const close = el('button', 'btn btn-ghost', 'CLOSE');
+  const close = el('button', 'pix-btn pix-btn--cream btn', 'CLOSE');
   close.type = 'button';
   close.addEventListener('click', () => {
     root.hidden = true;

@@ -46,8 +46,13 @@ await db.query(`update config set value = 'true' where key in ('vote_bonus_enabl
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices['Pixel 5'] });
-// The first-visit "how it works" slides would cover PLAY, so mark them as seen.
-await ctx.addInitScript(() => localStorage.setItem('prism.howto', '1'));
+// A phone's first visit opens Learn over PLAY, and the first PLAY shows the controls slides: mark both as seen here.
+// Step 10 covers that first-visit flow on a fresh phone.
+const seenIntro = () => {
+  localStorage.setItem('prism.learn', '1');
+  localStorage.setItem('prism.howto', '1');
+};
+await ctx.addInitScript(seenIntro);
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
@@ -185,7 +190,7 @@ try {
   step('email card: non-IRAS refused, IRAS email + feedback saved, lands on the thank-you screen');
 
   // 5b. Thank-you: beaver, confetti button, emoji reactions that reach the big screen.
-  await page.waitForSelector('.beaver-stage canvas, .beaver-fallback');
+  await page.waitForSelector('#screen-results canvas.forest');
   assert.equal(await page.textContent('#next'), 'PLAY AGAIN');
   // The big screen polls every second; it must receive the emoji the phone sends.
   const seenOnBoard = lb.waitForResponse(async (r) => r.url().includes('/reactions?since=') && !r.url().includes('since=-1') && (await r.json()).items?.some((i) => i.kind === 'fire'), { timeout: 8000 });
@@ -274,18 +279,20 @@ try {
   await admin.click('#site-toggle');
   await admin.click('#modal-ok');
   await admin.waitForFunction(() => document.getElementById('site-state').textContent.includes('CLOSED'));
+  // A brand-new phone: while the site is closed it gets only the closed screen, not Learn, and Learn stays unseen.
   const visitor = await browser.newPage({ ...devices['Pixel 5'] });
   visitor.on('pageerror', (e) => errors.push(e.message));
-  await visitor.addInitScript(() => localStorage.setItem('prism.howto', '1'));
   await visitor.goto(`${WEB}/`);
   await visitor.waitForSelector('#screen-closed:not([hidden]) canvas.forest');
   assert.match(await visitor.textContent('#screen-closed'), /WE'RE CLOSED/);
+  assert.ok(await visitor.isHidden('#screen-learn'), 'Learn does not open while the site is closed');
+  assert.equal(await visitor.evaluate(() => localStorage.getItem('prism.learn')), null, 'Learn is not marked seen while closed');
   await visitor.waitForTimeout(1500); // let the beavers move
   if (process.env.SHOT_DIR) await visitor.screenshot({ path: `${process.env.SHOT_DIR}/closed.png` });
   assert.notEqual((await visitor.evaluate(() => window.__prism.debugState())).mode, 'run');
   await visitor.click('#play', { force: true }).catch(() => {});
   assert.notEqual((await visitor.evaluate(() => window.__prism.debugState())).mode, 'run', 'cannot play while closed');
-  step('admin: closing the site shows the beaver forest and blocks play');
+  step('admin: closing the site shows the beaver forest, blocks play, and keeps Learn shut on a first visit');
   // Reopen: the open page notices within its polling interval (shortened here by a visibility refresh).
   await admin.click('#site-toggle'); // reopen needs no warning
   await admin.waitForFunction(() => document.getElementById('site-state').textContent.includes('OPEN'));
@@ -315,7 +322,7 @@ try {
   // 9. A perfect run serves the dish: 8 steps recovered ends the run as a win.
   //    The bot is kept shielded so obstacles cannot end the run first.
   const winner = await browser.newPage({ ...devices['Pixel 5'] });
-  await winner.addInitScript(() => localStorage.setItem('prism.howto', '1'));
+  await winner.addInitScript(seenIntro);
   winner.on('pageerror', (e) => errors.push(e.message));
   await winner.goto(`${WEB}/`);
   await winner.click('[data-dish="laksa"]');
@@ -339,6 +346,50 @@ try {
   assert.equal(await winner.getAttribute('#screen-results .beat', 'data-beat'), 'recipe');
   assert.equal(await winner.locator('.recipe-list li.got').count(), 8);
   step('a perfect run recovers all 8 steps: DISH SERVED, full recipe decoded');
+
+  // 10. First visit on a new phone: Learn opens over the home screen; SKIP marks it seen and lands on home, which
+  //     links back to it; the first PLAY shows the three controls slides once, then the run starts by itself.
+  const fresh = await browser.newPage({ ...devices['Pixel 5'] });
+  fresh.on('pageerror', (e) => errors.push(e.message));
+  await fresh.goto(`${WEB}/`);
+  await fresh.waitForSelector('#screen-learn:not([hidden])');
+  assert.equal(await fresh.getAttribute('#screen-learn', 'data-scene'), 'problem', 'Learn opens on its first scene');
+  assert.match(await fresh.textContent('.learn-line'), /Ah Ma's notes/);
+  await fresh.click('.learn-next');
+  await fresh.waitForTimeout(400);
+  await fresh.click('.learn-next');
+  assert.equal(await fresh.getAttribute('#screen-learn', 'data-scene'), 'split');
+  assert.ok(await fresh.isHidden('.learn-next'), 'NEXT waits until the step is done');
+  for (let i = 0; i < 3; i++) {
+    await fresh.click('.learn-tap');
+    await fresh.waitForTimeout(400);
+  }
+  await fresh.waitForSelector('.learn-next:not([hidden])', { timeout: 5000 });
+  assert.match(await fresh.textContent('.learn-stamp'), /CHUNKING/);
+  await fresh.click('.learn-skip');
+  await fresh.waitForSelector('#screen-learn', { state: 'hidden' });
+  assert.equal(await fresh.evaluate(() => localStorage.getItem('prism.learn')), '1', 'SKIP marks Learn as seen');
+  assert.notEqual((await fresh.evaluate(() => window.__prism.debugState())).mode, 'run', 'leaving Learn does not start a run');
+  await fresh.reload();
+  await fresh.waitForSelector('#open-learn');
+  await fresh.waitForTimeout(800);
+  assert.ok(await fresh.isHidden('#screen-learn'), 'later visits land on home');
+  await fresh.click('#open-learn');
+  await fresh.waitForSelector('#screen-learn:not([hidden])');
+  await fresh.click('.learn-skip');
+  await fresh.waitForSelector('#screen-learn', { state: 'hidden' });
+  await fresh.click('#reroll');
+  await fresh.click('#play');
+  await fresh.waitForSelector('#screen-howto:not([hidden])');
+  const slides = [];
+  for (let i = 0; i < 3; i++) {
+    slides.push(await fresh.textContent('.howto-card h2'));
+    await fresh.click('#screen-howto .nav-row button:last-child');
+  }
+  assert.deepEqual(slides, ['SWIPE TO DODGE', 'PICK THE RIGHT ANSWER', 'GOLD COINS, BIG STREAKS']);
+  await fresh.waitForFunction(() => window.__prism.debugState().mode === 'run', null, { timeout: 8000 });
+  step('first visit: Learn opens, SKIP marks it seen, home links back; first PLAY shows 3 controls slides, then runs');
+  await fresh.close();
 
   assert.deepEqual(errors, [], 'no uncaught page errors');
   console.log('\nAll end-to-end checks passed.');

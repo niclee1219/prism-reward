@@ -42,11 +42,11 @@
 
       <section id="screen-start" class="screen">
         <div class="logo">
-          <div class="logo-mark" aria-hidden="true"><i class="beam-in"></i><i class="logo-prism"></i><i class="beam-out"></i></div>
-          <h1 aria-label="PRISM RUN"><b>P</b><b>R</b><b>I</b><b>S</b><b>M</b><span><b>R</b><b>U</b><b>N</b></span></h1>
-          <div class="logo-sub">Ah Ma's Recipe</div>
+          <svg class="logo-mark pix-crisp" viewBox="0 0 60 18" shape-rendering="crispEdges" aria-hidden="true"><path fill="#2a1608" d="M30 0h1v1h-1zM30 1h1v1h-1zM29 2h1v1h-1zM31 2h1v1h-1zM29 3h1v1h-1zM31 3h1v1h-1zM28 4h1v1h-1zM32 4h1v1h-1zM27 5h1v1h-1zM33 5h1v1h-1zM26 6h1v1h-1zM34 6h1v1h-1zM26 7h1v1h-1zM34 7h1v1h-1zM25 8h1v1h-1zM35 8h1v1h-1zM24 9h1v1h-1zM36 9h1v1h-1zM23 10h1v1h-1zM37 10h1v1h-1zM23 11h1v1h-1zM37 11h1v1h-1zM22 12h1v1h-1zM38 12h1v1h-1zM21 13h1v1h-1zM39 13h1v1h-1zM20 14h1v1h-1zM40 14h1v1h-1zM20 15h1v1h-1zM40 15h1v1h-1zM19 16h23v1h-23z"/><path fill="#e63946" d="M58 1h2v1h-2zM54 2h6v1h-6zM51 3h9v1h-9zM47 4h7v1h-7zM57 4h1v1h-1zM44 5h7v1h-7zM41 6h6v1h-6zM37 7h4v1h-4zM36 8h1v1h-1z"/><path fill="#ffffff" d="M30 2h1v1h-1zM30 3h1v1h-1zM29 4h2v1h-2zM28 5h2v1h-2zM27 6h2v1h-2zM27 7h2v1h-2zM26 8h2v1h-2zM25 9h2v1h-2zM18 10h5v1h-5zM24 10h2v1h-2zM7 11h11v1h-11zM24 11h2v1h-2zM0 12h7v1h-7zM23 12h2v1h-2zM22 13h2v1h-2zM21 14h2v1h-2zM21 15h2v1h-2z"/><path fill="#7fc8ef" d="M31 4h1v1h-1zM30 5h3v1h-3zM31 6h3v1h-3zM31 7h3v1h-3zM32 8h3v1h-3zM33 9h3v1h-3zM34 10h3v1h-3zM34 11h3v1h-3zM35 12h3v1h-3zM36 13h3v1h-3zM37 14h3v1h-3zM37 15h3v1h-3z"/><path fill="#ff9f1c" d="M54 4h3v1h-3zM58 4h2v1h-2zM51 5h9v1h-9zM47 6h7v1h-7zM57 6h1v1h-1zM41 7h6v1h-6zM38 8h3v1h-3z"/><path fill="#bfe9ff" d="M29 6h2v1h-2zM29 7h2v1h-2zM28 8h4v1h-4zM27 9h6v1h-6zM26 10h8v1h-8zM26 11h8v1h-8zM25 12h10v1h-10zM24 13h12v1h-12zM23 14h14v1h-14zM23 15h14v1h-14z"/><path fill="#ffd166" d="M54 6h3v1h-3zM58 6h2v1h-2zM47 7h13v1h-13zM37 8h1v1h-1zM41 8h6v1h-6zM48 8h3v1h-3zM52 8h2v1h-2zM57 8h1v1h-1z"/><path fill="#52e08a" d="M47 8h1v1h-1zM51 8h1v1h-1zM54 8h3v1h-3zM58 8h2v1h-2zM38 9h22v1h-22zM52 10h2v1h-2zM57 10h3v1h-3z"/><path fill="#4cc9f0" d="M37 9h1v1h-1zM38 10h14v1h-14zM54 10h3v1h-3zM48 11h12v1h-12zM52 12h2v1h-2zM57 12h3v1h-3z"/><path fill="#cfe9ff" d="M18 11h5v1h-5zM7 12h11v1h-11zM3 13h4v1h-4z"/><path fill="#b388ff" d="M43 11h5v1h-5zM48 12h4v1h-4zM54 12h3v1h-3zM52 13h8v1h-8zM57 14h3v1h-3z"/></svg>
+          <h1 class="pix-title" aria-label="PRISM RUN"><b>P</b><b>R</b><b>I</b><b>S</b><b>M</b><span><b>R</b><b>U</b><b>N</b></span></h1>
+          <div class="logo-sub">AH MA'S RECIPE</div>
         </div>
-        <p class="backdrop">
+        <p class="backdrop pix-panel pix-panel--night">
           Ah Ma left you her hawker stall, and her secret recipe.<br />
           Her notes say things like <em>"cook until it smells right"</em>.<br />
           Like code with no docs. Use <b>PRISM</b> to decode all 8 steps before the lunch rush.
@@ -56,23 +56,25 @@
         <label class="nick" id="nick-row">
           <span class="sr">Your name</span>
           <input id="nickname" maxlength="16" placeholder="Type your name" autocomplete="off" autocapitalize="words" spellcheck="false" />
-          <button type="button" id="reroll" aria-label="Pick a random name">🎲</button>
+          <button type="button" id="reroll" class="pix-btn pix-btn--cream" aria-label="Pick a random name">🎲</button>
         </label>
-        <p class="nick-locked" id="nick-locked" hidden>Playing as <b id="nick-locked-name"></b></p>
+        <p class="nick-locked pix-panel pix-panel--night" id="nick-locked" hidden>Playing as <b id="nick-locked-name"></b></p>
         <p class="nick-error" id="nick-error" role="alert" hidden></p>
-        <button type="button" id="play" class="btn btn-big"><span>PLAY</span></button>
+        <button type="button" id="play" class="pix-btn btn btn-big"><span>PLAY</span></button>
         <div class="start-links">
-          <button type="button" id="open-board" class="link-btn">🏆 Leaderboard</button>
-          <button type="button" id="open-howto" class="link-btn">❓ How it works</button>
+          <button type="button" id="open-board" class="pix-btn pix-btn--cream link-btn">🏆 LEADERBOARD</button>
+          <button type="button" id="open-howto" class="pix-btn pix-btn--cream link-btn">❓ HOW TO PLAY</button>
+          <button type="button" id="open-learn" class="pix-btn pix-btn--cream link-btn learn-link">📖 LEARN HOW PRISM WORKS</button>
         </div>
       </section>
 
       <section id="screen-results" class="screen" hidden></section>
       <section id="screen-board" class="screen overlay" hidden></section>
       <section id="screen-howto" class="screen overlay" hidden></section>
+      <section id="screen-learn" hidden></section>
       <section id="screen-closed" class="screen closed" hidden></section>
     </div>
-    <div id="rotate"><div>📱<br />Turn your phone upright to play</div></div>
+    <div id="rotate"><div class="rotate-box pix-panel pix-panel--night"><i class="rotate-icon" aria-hidden="true">📱</i><b>TURN ME UPRIGHT</b><span>Hold your phone upright to play</span></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

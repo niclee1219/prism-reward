@@ -1,0 +1,154 @@
+/* =====================================================================================================================
+   pixel.css: the shared pixel-art look (fonts, tokens, building blocks). Imported by src/ui/styles.css,
+   src/leaderboard/leaderboard.css and src/board/board.css. It only DEFINES things: nothing here applies to an element
+   unless that element uses a .pix-* class or a var(--pix-*) token, so importing it changes no existing screen.
+
+   FONTS (bundled, latin only, woff2 only, precached by the service worker)
+     --pix-font-display   'Press Start 2P': titles, buttons, numbers, short labels. Too dense for sentences.
+     --pix-font-body      'Jersey 15': sentences, player names, anything longer than a few words. One weight only:
+                          bold/700 renders the same (no fake bold). It runs small and narrow, so size it about 1.2x
+                          what a normal sans would get: at least 18px on the phone; line-height 1.1 to 1.3.
+                          (Pixelify Sans was tried first and dropped: its c/C read as o/O and B as 8 at real sizes.)
+
+   SIZE TOKENS (override on any ancestor to rescale, e.g. big screens: .stage { --pix-bw: calc(var(--u) * 0.5); })
+     --pix-bw             border width of panels, buttons and signs (3px)
+     --pix-drop           hard offset-shadow / press depth (4px)
+
+   COLOUR TOKENS
+     --pix-ink            #2a1608  dark brown outline and text on light surfaces (phone, forest)
+     --pix-night-ink      #0b0b1a  shadow/outline colour on the night skyline (big screens)
+     --pix-cream          #fff5d6  light panel / light button fill
+     --pix-gold           #ffd166  primary button, highlights, top rank
+     --pix-gold-shade     #e09f1f  bottom bevel of gold buttons
+     --pix-orange         #c2410c  under-shadow of big outlined titles
+     --pix-red            #e63946  logo shadow, danger
+     --pix-green          #52e08a  success / live
+     --pix-white          #ffffff
+     --pix-night-panel    rgba(8, 8, 28, 0.74)  translucent panel over the night skyline
+     --pix-wood / --pix-wood-light / --pix-wood-dark / --pix-wood-edge   wooden sign fill, top bevel, bottom bevel, frame
+     --pix-wood-text      #fff5d6  sign headline;  --pix-wood-subtext  #3b1d0a  sign small line
+
+   CLASSES
+     .pix-display         display font (Press Start 2P), line-height 1.4
+     .pix-body            body font (Jersey 15)
+     .pix-square          border-radius: 0
+     .pix-crisp           crisp upscaling for <canvas>/<img> (image-rendering: pixelated)
+     .pix-shadow          hard offset drop shadow (no blur), ink colour
+     .pix-title           big white display text with a thick ink outline and an orange under-shadow
+     .pix-panel           cream box, ink border, hard shadow
+       .pix-panel--night  translucent navy box, white border, night-ink shadow (big screens)
+       .pix-panel--gold   modifier for --night: gold border (the highlighted side panel)
+     .pix-btn             gold chunky button with bottom bevel; sinks on :active or .is-pressed; :disabled greys
+       .pix-btn--cream    cream variant (secondary actions)
+       .pix-btn--icon     square cream emoji/icon button (reaction row)
+     .pix-sign            wooden sign: headline in display font, optional <small> / .pix-sign-sub line under it
+
+   Font sizes are left to the consumer (set font-size on the element; padding is in em so it scales with it).
+   ===================================================================================================================== */
+
+/* Fonts: only the latin woff2 files, referenced directly so Vite emits nothing else (the @fontsource CSS entry points
+   would also pull in .woff fallbacks every target browser ignores). */
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Jersey 15 has one weight. The face claims the whole 100-900 range so `bold`/700 picks this same face instead of
+   the browser smearing a fake bold over it (which closes up c/e/a again). */
+@font-face {
+  font-family: 'Jersey 15';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/jersey-15/files/jersey-15-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --pix-font-display: 'Press Start 2P', ui-monospace, Menlo, monospace;
+  --pix-font-body: 'Jersey 15', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --pix-bw: 3px;
+  --pix-drop: 4px;
+
+  --pix-ink: #2a1608;
+  --pix-night-ink: #0b0b1a;
+  --pix-cream: #fff5d6;
+  --pix-gold: #ffd166;
+  --pix-gold-shade: #e09f1f;
+  --pix-orange: #c2410c;
+  --pix-red: #e63946;
+  --pix-green: #52e08a;
+  --pix-white: #ffffff;
+  --pix-night-panel: rgba(8, 8, 28, 0.74);
+  --pix-wood: #b78247;
+  --pix-wood-light: #d39a5a;
+  --pix-wood-dark: #8a5a30;
+  --pix-wood-edge: #5e3110;
+  --pix-wood-text: #fff5d6;
+  --pix-wood-subtext: #3b1d0a;
+}
+
+/* ---------- basics ---------- */
+.pix-display { font-family: var(--pix-font-display); font-weight: 400; line-height: 1.4; }
+.pix-body { font-family: var(--pix-font-body); }
+.pix-square { border-radius: 0; }
+.pix-crisp { image-rendering: crisp-edges; image-rendering: pixelated; }
+.pix-shadow { box-shadow: var(--pix-drop) var(--pix-drop) 0 var(--pix-ink); }
+.pix-title {
+  font-family: var(--pix-font-display); font-weight: 400; line-height: 1.3; color: var(--pix-white);
+  text-shadow: 3px 0 var(--pix-ink), -3px 0 var(--pix-ink), 0 3px var(--pix-ink), 0 -3px var(--pix-ink),
+    3px 3px var(--pix-ink), -3px 3px var(--pix-ink), 3px -3px var(--pix-ink), -3px -3px var(--pix-ink), 0 6px var(--pix-orange);
+}
+
+/* ---------- panel ---------- */
+.pix-panel {
+  border-radius: 0; background: var(--pix-cream); color: var(--pix-ink);
+  border: var(--pix-bw) solid var(--pix-ink); box-shadow: var(--pix-drop) var(--pix-drop) 0 var(--pix-ink);
+}
+.pix-panel--night {
+  background: var(--pix-night-panel); color: var(--pix-white);
+  border-color: var(--pix-white); box-shadow: var(--pix-drop) var(--pix-drop) 0 var(--pix-night-ink);
+}
+.pix-panel--gold { border-color: var(--pix-gold); }
+
+/* ---------- button ---------- */
+.pix-btn {
+  --pix-btn-bg: var(--pix-gold);
+  --pix-btn-shade: var(--pix-gold-shade);
+  --pix-btn-fg: var(--pix-ink);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6em;
+  margin: 0; padding: 0.9em 1.2em; border-radius: 0; cursor: pointer; user-select: none; -webkit-user-select: none;
+  font-family: var(--pix-font-display); font-weight: 400; line-height: 1.2; text-transform: uppercase; text-decoration: none;
+  color: var(--pix-btn-fg); background: var(--pix-btn-bg); border: var(--pix-bw) solid var(--pix-ink);
+  box-shadow: inset 0 calc(var(--pix-drop) * -1) var(--pix-btn-shade), 0 var(--pix-drop) 0 var(--pix-ink);
+}
+.pix-btn:active:not(:disabled),
+.pix-btn.is-pressed {
+  transform: translateY(var(--pix-drop));
+  box-shadow: inset 0 calc(var(--pix-drop) / -2) var(--pix-btn-shade);
+}
+.pix-btn:focus-visible { outline: var(--pix-bw) dashed var(--pix-gold); outline-offset: var(--pix-bw); }
+.pix-btn:disabled { cursor: default; opacity: 0.55; filter: grayscale(0.6); }
+.pix-btn--cream { --pix-btn-bg: var(--pix-cream); --pix-btn-shade: #e6d3a6; }
+.pix-btn--icon {
+  --pix-btn-bg: var(--pix-cream); --pix-btn-shade: var(--pix-cream);
+  width: 2.2em; height: 2.1em; padding: 0; font-family: inherit; line-height: 1;
+}
+
+/* ---------- wooden sign ---------- */
+.pix-sign {
+  display: block; border-radius: 0; padding: 0.8em 0.4em 0.65em; text-align: center;
+  font-family: var(--pix-font-display); font-weight: 400; line-height: 1.3;
+  color: var(--pix-wood-text); text-shadow: 2px 2px var(--pix-wood-edge);
+  background: var(--pix-wood); border: calc(var(--pix-bw) + 1px) solid var(--pix-wood-edge);
+  box-shadow: inset 0 calc(var(--pix-drop) * -1) var(--pix-wood-dark), inset 0 var(--pix-drop) var(--pix-wood-light), 0 var(--pix-drop) 0 var(--pix-ink);
+}
+.pix-sign small,
+.pix-sign .pix-sign-sub {
+  display: block; margin-top: 0.8em; font-family: var(--pix-font-body); font-size: 0.75em; line-height: 1.25;
+  color: var(--pix-wood-subtext); text-shadow: none;
+}

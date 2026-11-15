@@ -44,7 +44,8 @@ export default defineConfig({
       manifest: false,
       workbox: {
         // Precache the whole game so a run needs no network after the first load.
-        globPatterns: ['**/*.{js,css,html,svg,webmanifest}'],
+        // woff2: the bundled pixel fonts (src/ui/pixel.css), so text renders in them offline too.
+        globPatterns: ['**/*.{js,css,html,svg,webmanifest,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: null,
         cleanupOutdatedCaches: true,

@@ -1,4 +1,4 @@
-// Full-screen effects for the /leaderboard hype screen: rising embers, confetti cannons, sparks and sound.
+// Full-screen effects for the /leaderboard hype screen: confetti cannons, sparks, floating emoji and sound.
 // Everything is drawn on one canvas behind the UI, plus a short burst layer on top via `burst`.
 import { reducedMotion } from '../game/perf';
 
@@ -133,7 +133,7 @@ export class Fx {
       vx: 0,
       vy: -(150 + Math.random() * 130) * dpr,
       g: 0,
-      size: (30 + Math.random() * 12) * dpr,
+      size: (36 + Math.random() * 14) * dpr, // ~1.2x the old 30-42
       life: 0,
       max: reducedMotion ? 1.6 : 3 + Math.random() * 1.2,
       colour: '#fff',
@@ -148,45 +148,14 @@ export class Fx {
     return this.w / 1440;
   }
 
-  private spawnEmbers(dt: number): void {
-    const rate = (reducedMotion ? 6 : 26) + this.heat * (reducedMotion ? 20 : 150); // per second
-    let n = rate * dt;
-    while (n > 0) {
-      if (n < 1 && Math.random() > n) break;
-      n--;
-      const s = this.scale();
-      this.bits.push({
-        x: Math.random() * this.w,
-        y: this.h + 10,
-        vx: (Math.random() - 0.5) * 40 * s,
-        vy: -(60 + Math.random() * 160 + this.heat * 260) * s,
-        g: 0,
-        size: (1.5 + Math.random() * 3.5) * s,
-        life: 0,
-        max: 3 + Math.random() * 4,
-        colour: EMBER[(Math.random() * EMBER.length) | 0],
-        kind: 'ember',
-        spin: Math.random() * 6,
-        rot: 0,
-      });
-    }
-  }
-
   private frame(now: number): void {
     const dt = Math.min((now - this.last) / 1000, 0.05);
     this.last = now;
     this.heat = Math.max(0.12, this.heat - dt * 0.12);
-    this.spawnEmbers(dt);
+    // Rising embers and the bottom glow are gone: the skyline is the ambient scene now. `heat` stays as a hook.
 
     const { ctx, w, h } = this;
     ctx.clearRect(0, 0, w, h);
-    // A glow along the bottom edge that breathes with the heat.
-    const g = ctx.createLinearGradient(0, h, 0, h * (1 - 0.18 - this.heat * 0.3));
-    g.addColorStop(0, `rgba(255,107,53,${0.12 + this.heat * 0.4})`);
-    g.addColorStop(1, 'rgba(255,107,53,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-
     const live: Bit[] = [];
     for (const b of this.bits) {
       b.life += dt;

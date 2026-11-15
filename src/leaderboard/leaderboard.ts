@@ -10,6 +10,7 @@ import { api, type LeaderboardResult } from '../net/api';
 import { createDemo } from './demo';
 import { diffBoard, entryTarget, TOP_N, type BoardEvent, type Entry } from './diff';
 import { Fx, Sound, type Stinger } from './fx';
+import { startSkyline } from '../scene/skyline';
 import { planReactions } from './reactions';
 import { REACTION_EMOJI, type ReactionKind, type ReactionsResult } from '../net/reactions';
 
@@ -23,6 +24,15 @@ const flash = $('flash');
 const hint = $('hint');
 const fx = new Fx($<HTMLCanvasElement>('fx'));
 const sound = new Sound();
+
+// The night-market skyline behind everything; the clock tower stands in the gap between the list and the side panel.
+const gap = $('sky-gap');
+startSkyline($<HTMLCanvasElement>('sky'), {
+  towerX: () => {
+    const r = gap.getBoundingClientRect();
+    return (r.left + r.width / 2) / innerWidth;
+  },
+});
 
 const demo = new URLSearchParams(location.search).has('demo') ? createDemo() : null;
 const gameUrl = NET.GAME_URL || `${location.origin}/`;
@@ -328,8 +338,8 @@ function showReactions(items: { kind: ReactionKind }[], spreadMs: number): void 
   const plan = planReactions(items);
   for (let i = 0; i < plan.bursts; i++) {
     setTimeout(() => {
-      fx.cannons(70);
-      fx.rain(30);
+      fx.cannons(90); // 45 pieces from each cannon
+      fx.rain(36);
       fx.boost(0.55);
     }, i * 250);
   }

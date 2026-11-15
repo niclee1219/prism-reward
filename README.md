@@ -1,13 +1,19 @@
 # PRISM Run
 
-**Ah Ma's Recipe**: a mobile-web 3D runner for the PRISM exhibition booth. You have inherited Ah Ma's hawker
-stall, and her recipe notes are as vague as undocumented code ("cook until it smells right"). Players scan a QR
-code, pick a dish (chicken rice, char kway teow or laksa), run through a hawker centre and answer question
-gates. Each correct answer decodes one recipe step with PRISM ("talk to your code, understand it in minutes").
+**Ah Ma's Recipe**: a mobile-web pixel-art runner for the PRISM exhibition booth. You play a little beaver cook
+who has inherited Grandma's (Ah Ma's) hawker stall, and her recipe notes are as vague as undocumented code ("cook
+until it smells right"). Players scan a QR code, pick a dish (chicken rice, char kway teow or laksa), run through a
+hawker centre and answer question gates. Each correct answer decodes one recipe step with PRISM ("talk to your code, understand it in minutes").
 Decode all 8 and the dish is served: that is the win. A leaderboard and a live booth screen make it
 competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 Starbucks gift card.
 
-- `/` the game (phone, portrait)
+- `/` the game (phone, portrait). A phone's first visit opens **Learn** over the home screen: ten short pixel scenes
+  in which the visitor does each step of PRISM themselves (chop the code into pieces, file them by meaning, ask, pull
+  the matching pieces, generate a sourced answer) and the real term is stamped on afterwards (CHUNKING, EMBEDDING,
+  RETRIEVAL, GENERATION, then RAG). It ends with "Now cook dinner!" and a PLAY button that lands on the home screen.
+  Finishing or skipping it is remembered on the phone (`prism.learn` in localStorage), so later visits land on home,
+  which has a "Learn how PRISM works" link. The three controls slides show once, on the first PLAY tap, then the run
+  starts.
 - `/board` the booth TV leaderboard (landscape)
 - `/leaderboard` the high-energy laptop leaderboard: a full-screen show whenever someone makes the board for the first time, enters the top 10 or steals the crown (see below)
 - `/admin` the staff page (PIN-protected, phone-friendly): remove runs, flip the toggles, export the lucky draw entries
@@ -15,8 +21,10 @@ competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 St
 **Stack:** Vite + TypeScript + Three.js on the front end (game rules in a renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back
 end; static hosting on Cloudflare Pages.
 
-> **Before the event:** `src/content/questions.json` and the recipe steps in `src/content/dishes.ts` are
-> DRAFTS. A human must review all 36 questions and 24 recipe steps for accuracy.
+> **Before the event:** `src/content/questions.json`, the recipe steps in `src/content/dishes.ts` and the Learn
+> content in `src/content/learn.ts` are DRAFTS. A human must review all 36 questions, 24 recipe steps, and Learn's
+> scene lines, three preset questions, answers and citations. Learn's ML model, code and file names are invented
+> for the demo; check that each answer agrees with its code snippets and that the line numbers look sensible.
 
 ---
 
@@ -50,10 +58,10 @@ Without `VITE_API_BASE` the game still plays; scores simply wait in the retry qu
 
 | Command | What it checks |
 |---|---|
-| `npm test` | Scoring, score cap (incl. the served bonus), difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, `RunSim` (bot runs reach DISH SERVED, crashes, time-up, one lane per move, every honest run passes the server check), one lane per swipe, dish list in sync with the server |
+| `npm test` | Scoring, score cap (incl. the served bonus), difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, `RunSim` (bot runs reach DISH SERVED, crashes, time-up, one lane per move, every honest run passes the server check), one lane per swipe, dish list in sync with the server, Learn content (ten scenes each with a line, stamps in order, no term named before its stamp, every preset question pulls at least one card and no two pull the same set, every answer cites exactly the pieces it pulled) |
 | `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, lucky draw entries (only exact `@iras.gov.sg`, one per device and per email), reactions (kinds, polling cursor, flood limit), admin PIN and lockout |
 | `npm run load-test` | 200 concurrent submissions, zero errors, leaderboard catches up within 2 s |
-| `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the results beats in order (ending on the thank-you card), reactions reaching `/leaderboard`, play again returning home with the dish ticked, the board, and the admin actions |
+| `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the results beats in order (ending on the thank-you card), reactions reaching `/leaderboard`, play again returning home with the dish ticked, the board, the admin actions (closing the site keeps Learn shut on a brand-new phone), and a first visit (Learn opens, a step must be done before NEXT, SKIP marks it seen, home links back, the first PLAY shows the three controls slides and then runs) |
 
 `test:backend`, `load-test` and `test:e2e` need `scripts/local-db.sh start` first. `test:e2e` needs
 Playwright (`npm i -D playwright && npx playwright install chromium`) if it is not already on the machine.
@@ -146,6 +154,8 @@ The side panel always says what it takes to get on ("BEAT 1,823" or "3 SPOTS OPE
 ## 5. Pre-event checklist
 
 - [ ] **Questions reviewed** by a human; `_comment` draft flag removed from `src/content/questions.json`.
+- [ ] **Learn reviewed** by a human: lines, preset questions, answers and citations in `src/content/learn.ts`; walk
+      through it once on a phone (clear site data first, or open it from the home screen link).
 - [ ] **Gift card** bought and someone assigned to run the draw (entries come from `/admin` → Export).
 - [ ] **Vote bonus decision** confirmed with the organisers. One tap in `/admin` → Toggles turns it off.
 - [ ] **Load test against the real project:**
@@ -205,14 +215,17 @@ Likely first adjustments after a playtest:
 ```
 src/
   config.ts                all client tunables
-  main.ts                  start -> run -> results -> play again
+  main.ts                  first visit -> Learn; start -> (controls slides once) -> run -> results -> play again
+  content/learn.ts         Learn: scene lines, the invented ML code pieces, preset questions, answers, signposts (DRAFT)
+  learn/                   Learn mode: learn.ts (frame, stamps, BACK / NEXT / SKIP), scenes.ts (the ten scenes), art.ts (sprites)
+  scene/                   pixelCanvas.ts (tiny crisp canvases), skyline.ts (night market); the forest is ui/forest.ts
   content/questions.json   36 draft questions (4 types x 9, tiers 1-3)
   game/RunScene.ts         the run: lanes, scrolling, gates, obstacles, endings
   game/gateDirector.ts     picks questions: tier by time, no type twice in a row, no repeats, shuffled lanes
   game/difficulty.ts       speed / gate / obstacle curves
   game/juice.ts            speed lines, fire trail, pop text, shake
   game/art/                pixel sprites as character grids, baked into one atlas at start-up
-  ui/                      HUD, results beats, thank-you card and 3D beaver, confetti
+  ui/                      HUD, results beats, thank-you card (pixel forest), confetti, shared pixel styles
   net/submitQueue.ts       localStorage queue with backoff: a finished run is never lost
   board/  leaderboard/  admin/   the other pages
 supabase/
@@ -275,6 +288,13 @@ the server; staff can remove any run live.
 17. **Nicknames are trimmed to 16 characters with markup characters removed.** There is no profanity filter;
     staff remove offending runs in `/admin` → Runs.
 18. **Play again returns to the home screen** and ticks the dish you just finished (kept on the device only).
+19. **Learn and a closed site.** Learn never opens while staff have the site closed, and the "seen" flag is only set
+    while it is open. A first visit opens Learn straight away (no waiting on the network); if the first status check
+    then says the site is closed, Learn is closed again before the visitor has touched it and only the closed screen
+    shows. If the site closes while someone is already part-way through Learn, they can finish it (like a run in
+    progress); FINISH, PLAY or SKIP then land on the closed screen, and the flag is not set, so Learn opens again on
+    their next visit once the booth reopens.
+20. **Learn pauses the 3D street** behind it (it is fully covered), so a phone is not drawing two scenes at once.
 
 ## 10. Known limits
 

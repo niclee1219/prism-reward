@@ -81,6 +81,29 @@ export function canvasTexture(w: number, h: number, draw: (ctx: CanvasRenderingC
   return t;
 }
 
+/** The pixel display font (bundled by src/ui/pixel.css), for text painted onto signs in the 3D street. */
+export const PIXEL_FONT = '"Press Start 2P", ui-monospace, Menlo, monospace';
+
+/**
+ * A canvas texture whose `draw` uses PIXEL_FONT. Web fonts load lazily, so it is drawn once now (maybe in the
+ * fallback font) and redrawn as soon as the pixel font is ready.
+ */
+export function pixelTextTexture(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
+  const t = canvasTexture(w, h, draw);
+  if (typeof document !== 'undefined' && document.fonts) {
+    void document.fonts
+      .load(`20px ${PIXEL_FONT}`)
+      .then(() => {
+        const ctx = (t.image as HTMLCanvasElement).getContext('2d')!;
+        ctx.clearRect(0, 0, w, h);
+        draw(ctx);
+        t.needsUpdate = true;
+      })
+      .catch(() => {});
+  }
+  return t;
+}
+
 /** Soft round glow, for additive sprites. */
 export function glowTexture(color: string): THREE.CanvasTexture {
   return canvasTexture(64, 64, (ctx) => {

@@ -1,36 +1,47 @@
-body.board-page { overflow: hidden; }
-.board { display: grid; grid-template-columns: 1fr minmax(240px, 26vw); gap: 3vw; height: 100vh; padding: 3vh 3vw; }
-.board-left { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.board header { display: flex; align-items: baseline; justify-content: space-between; }
-.board h1 { margin: 0; font: 700 6vh/1 var(--mono); text-shadow: 0.5vh 0.5vh 0 var(--red); }
-.board h1 span { color: var(--yellow); margin-left: 1.5vh; }
-.status { font: 700 1.8vh var(--mono); opacity: 0.6; }
+/* /board: the booth TV over the night-market skyline. The list and QR panel stop at about 66% of the height so the
+   skyline shows below; the clock tower rises in the gap between them. */
+@import '../ui/pixel.css';
+body.board-page { --pix-bw: 0.4vh; --pix-drop: 0.5vh; overflow: hidden; background: #0b1030; font-family: var(--pix-font-body); }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.board { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 56vw) 1fr minmax(240px, 22vw); height: 100vh; padding: 2.5vh 3vw 34vh; }
+.sky-gap { min-width: 0; }
+.board-left { display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: 1.4vh; }
+.board header { display: flex; align-items: center; justify-content: space-between; }
+.board h1 { margin: 0; font: 400 5vh/1 var(--pix-font-display); color: #fff; text-shadow: 0.5vh 0.5vh 0 var(--pix-red), 0.9vh 0.9vh 0 var(--pix-night-ink); }
+.board h1 span { color: var(--yellow); margin-left: 1.4vh; }
+.status { font: 400 1.6vh/1 var(--pix-font-display); padding: 0.9vh 1.2vh; background: var(--pix-night-panel); border: 0.3vh solid currentColor; color: #fff; opacity: 0.8; }
 .status.live { color: var(--green); opacity: 1; }
 .status.down { color: #ff8a8a; opacity: 1; }
-.king-banner { margin-top: 2vh; padding: 1.4vh 2vh; background: var(--yellow); color: var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 2vh; }
-.king-label { font: 700 3.2vh var(--mono); white-space: nowrap; }
-.king-name { font: 700 4.2vh var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.king-banner { padding: 1vh 2vh; background: var(--yellow); color: var(--pix-ink); display: flex; align-items: center; justify-content: space-between; gap: 2vh;
+  border: var(--pix-bw) solid var(--pix-night-ink); box-shadow: inset 0 -0.5vh var(--pix-gold-shade), var(--pix-drop) var(--pix-drop) 0 var(--pix-night-ink); }
+.king-banner[hidden] { display: none; }
+.king-label { font: 400 1.9vh var(--pix-font-display); white-space: nowrap; }
+.king-name { font: 400 4.2vh var(--pix-font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .king-banner.changed { animation: king 1.2s; }
 @keyframes king { 20% { transform: scale(1.04); background: #fff; } }
-.rows { list-style: none; margin: 1.5vh 0 0; padding: 0; flex: 1; display: grid; grid-template-rows: repeat(10, 1fr); gap: 0.7vh; min-height: 0; }
-.row { display: grid; grid-template-columns: 9vh 1fr auto; align-items: center; padding: 0 2vh; background: var(--ink2); font: 700 3.6vh var(--mono); min-height: 0; }
-.row .n { color: var(--yellow); }
+.rows-wrap { position: relative; flex: 1; min-height: 0; padding: 0.5vh 1.6vh; }
+.rows { list-style: none; margin: 0; padding: 0; height: 100%; display: grid; grid-template-rows: repeat(10, 1fr); }
+.row { display: grid; grid-template-columns: 8vh 1fr auto; align-items: center; padding: 0 1vh; font: 400 3.5vh/1 var(--pix-font-body); color: #fff; min-height: 0; border-bottom: 0.2vh dashed rgba(255, 255, 255, 0.2); }
+.row:last-child { border-bottom: 0; }
+.row .n { font: 400 2.1vh/1 var(--pix-font-display); color: var(--yellow); }
 .row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row .score { font-variant-numeric: tabular-nums; }
-.row.r1 { background: #4a3f1c; }
-.row.r1 .n, .row.r1 .score { color: var(--yellow); }
+.row .score { font: 400 2.4vh/1 var(--pix-font-display); font-variant-numeric: tabular-nums; }
+.row.r1 { background: rgba(255, 209, 102, 0.2); color: var(--yellow); }
+.row.r1 .score { color: var(--yellow); }
 .row.new { animation: row-new 1.4s; }
 .row.up { animation: row-up 1.2s; }
-@keyframes row-new { from { background: var(--green); color: var(--ink); } }
-@keyframes row-up { from { background: var(--teal); } }
-.empty { font: 700 3vh var(--mono); opacity: 0.6; margin: auto; }
-.board-right { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2vh; text-align: center; }
-.qr-box { background: var(--cream); padding: 1.6vh; width: 100%; }
+@keyframes row-new { from { background: rgba(82, 224, 138, 0.6); } }
+@keyframes row-up { from { background: rgba(42, 157, 143, 0.6); } }
+.empty { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; text-align: center; font-size: 2.6vh; line-height: 1.8; color: rgba(255, 255, 255, 0.75); }
+.empty[hidden] { display: none; }
+.board-right { display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; gap: 1.2vh; text-align: center; padding: 1.6vh 1.6vw; min-height: 0; overflow: hidden; }
+.qr-box { background: var(--pix-cream); padding: 1.2vh; width: min(100%, 24vh); border: var(--pix-bw) solid var(--pix-night-ink); }
 .qr-box canvas { width: 100% !important; height: auto !important; display: block; image-rendering: pixelated; }
-.scan { font: 700 4.4vh var(--mono); color: var(--yellow); }
-.tag { font-size: 2.4vh; line-height: 1.4; opacity: 0.85; }
-.plays { display: flex; flex-direction: column; margin-top: 2vh; }
-.plays b { font: 700 9vh/1 var(--mono); }
+.scan { font-size: 2.2vh; color: var(--yellow); }
+.tag { font: 400 2.6vh/1.25 var(--pix-font-body); opacity: 0.9; }
+.plays { display: flex; flex-direction: column; gap: 0.8vh; }
+.plays b { font: 400 5vh/1 var(--pix-font-display); }
 .plays b.bump { animation: bump 0.4s; }
-.plays span { font: 700 2.2vh var(--mono); opacity: 0.7; }
+.plays span { font: 400 2.6vh var(--pix-font-body); opacity: 0.8; }
+@keyframes bump { 40% { transform: scale(1.12); color: var(--yellow); } }
 @media (prefers-reduced-motion: reduce) { .row, .king-banner { animation: none !important; transition: none !important; } }

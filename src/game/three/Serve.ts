@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { WORLD } from '../../config';
 import type { Dish, DishId } from '../../content/dishes';
-import { Builder, GLOW_MAT, Quads, VC_MAT, bend, canvasTexture, haloMaterial } from './build';
+import { Builder, GLOW_MAT, PIXEL_FONT, Quads, VC_MAT, bend, canvasTexture, haloMaterial, pixelTextTexture } from './build';
 import { catGeometry } from './Props';
 
 /** Seconds into the cutscene: the dish appears overhead, leaves the hands, lands on the table. */
@@ -76,24 +76,25 @@ function customer(shirt: string, hair: string, skin: string, bun: boolean): THRE
 }
 
 function bannerTexture(dish: Dish): THREE.CanvasTexture {
-  return canvasTexture(1024, 256, (ctx) => {
+  return pixelTextTexture(1024, 256, (ctx) => {
     ctx.fillStyle = '#160d2b';
     ctx.fillRect(0, 0, 1024, 256);
-    ctx.shadowColor = dish.colour;
-    ctx.shadowBlur = 26;
-    ctx.strokeStyle = dish.colour;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(16, 16, 992, 224);
+    ctx.strokeStyle = dish.colour; // a hard double frame instead of a soft glow, to match the pixel street
+    ctx.lineWidth = 12;
+    ctx.strokeRect(14, 14, 996, 228);
+    ctx.lineWidth = 4;
+    ctx.strokeRect(36, 36, 952, 184);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffd166';
-    ctx.font = '900 54px system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.fillText("AH MA'S", 512, 72);
+    ctx.font = `44px ${PIXEL_FONT}`;
+    ctx.fillText("AH MA'S", 512, 80);
     ctx.fillStyle = '#fff6e0';
-    ctx.font = '900 108px system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.fillText(dish.name.toUpperCase(), 512, 164, 920);
-    ctx.shadowBlur = 6;
-    ctx.fillText(dish.name.toUpperCase(), 512, 164, 920);
+    ctx.font = `76px ${PIXEL_FONT}`;
+    ctx.fillStyle = '#2a1608';
+    ctx.fillText(dish.name.toUpperCase(), 518, 170, 900); // hard drop shadow
+    ctx.fillStyle = '#fff6e0';
+    ctx.fillText(dish.name.toUpperCase(), 512, 164, 900);
   });
 }
 
