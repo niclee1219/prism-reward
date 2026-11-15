@@ -15,9 +15,11 @@ interface Bit {
   life: number;
   max: number;
   colour: string;
-  kind: 'ember' | 'conf' | 'spark';
+  kind: 'ember' | 'conf' | 'spark' | 'emoji';
   spin: number;
   rot: number;
+  /** Only for kind 'emoji'. */
+  text?: string;
 }
 
 export class Fx {
@@ -117,6 +119,31 @@ export class Fx {
     }
   }
 
+  /**
+   * One small emoji floating up from the bottom, like the reactions on a live video.
+   * Kept deliberately smaller than the confetti, and capped so a busy room cannot bury the board.
+   */
+  emoji(glyph: string): void {
+    if (this.bits.filter((b) => b.kind === 'emoji').length > 50) return;
+    const dpr = this.w / innerWidth;
+    const lane = 0.62 + Math.random() * 0.36; // drift up the right-hand side, away from the rows
+    this.bits.push({
+      x: this.w * lane,
+      y: this.h - 24 * dpr,
+      vx: 0,
+      vy: -(150 + Math.random() * 130) * dpr,
+      g: 0,
+      size: (30 + Math.random() * 12) * dpr,
+      life: 0,
+      max: reducedMotion ? 1.6 : 3 + Math.random() * 1.2,
+      colour: '#fff',
+      kind: 'emoji',
+      spin: Math.random() * 6.28,
+      rot: 0,
+      text: glyph,
+    });
+  }
+
   private scale(): number {
     return this.w / 1440;
   }
@@ -169,6 +196,17 @@ export class Fx {
       b.y += b.vy * dt;
       if (b.y > h + 40 && b.kind !== 'ember') continue;
       if (b.y < -40 && b.kind === 'ember') continue;
+      if (b.kind === 'emoji') {
+        const t = b.life / b.max;
+        const pop = Math.min(1, b.life / 0.18); // quick pop-in
+        ctx.globalAlpha = Math.max(0, Math.min(1, (1 - t) * 3));
+        ctx.font = `${Math.round(b.size * (0.6 + 0.4 * pop))}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(b.text ?? '', b.x + Math.sin(now / 350 + b.spin) * 22 * (this.w / innerWidth), b.y);
+        live.push(b);
+        continue;
+      }
       const fade = b.kind === 'conf' ? Math.min(1, (b.max - b.life) * 1.5) : 1 - b.life / b.max;
       ctx.globalAlpha = Math.max(0, fade);
       ctx.fillStyle = b.colour;

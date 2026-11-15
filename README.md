@@ -4,20 +4,19 @@
 stall, and her recipe notes are as vague as undocumented code ("cook until it smells right"). Players scan a QR
 code, pick a dish (chicken rice, char kway teow or laksa), run through a hawker centre and answer question
 gates. Each correct answer decodes one recipe step with PRISM ("talk to your code, understand it in minutes").
-Decode all 8 and the dish is served: that is the win. A leaderboard, a spin wheel and a live booth screen make
-it competitive.
+Decode all 8 and the dish is served: that is the win. A leaderboard and a live booth screen make it
+competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 Starbucks gift card.
 
 - `/` the game (phone, portrait)
 - `/board` the booth TV leaderboard (landscape)
 - `/leaderboard` the high-energy laptop leaderboard: a full-screen show whenever someone makes the board for the first time, enters the top 10 or steals the crown (see below)
-- `/admin` the staff page (PIN-protected, phone-friendly)
+- `/admin` the staff page (PIN-protected, phone-friendly): remove runs, flip the toggles, export the lucky draw entries
 
 **Stack:** Vite + TypeScript + Three.js on the front end (game rules in a renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back
 end; static hosting on Cloudflare Pages.
 
 > **Before the event:** `src/content/questions.json` and the recipe steps in `src/content/dishes.ts` are
-> DRAFTS. A human must review all 36 questions and 24 recipe steps for accuracy. The prizes seeded by the first
-> migration are placeholders too.
+> DRAFTS. A human must review all 36 questions and 24 recipe steps for accuracy.
 
 ---
 
@@ -52,9 +51,9 @@ Without `VITE_API_BASE` the game still plays; scores simply wait in the retry qu
 | Command | What it checks |
 |---|---|
 | `npm test` | Scoring, score cap (incl. the served bonus), difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, `RunSim` (bot runs reach DISH SERVED, crashes, time-up, one lane per move, every honest run passes the server check), one lane per swipe, dish list in sync with the server |
-| `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, spin stock never negative under 50 parallel spins, code redeems once, admin PIN and lockout |
+| `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, lucky draw entries (only exact `@iras.gov.sg`, one per device and per email), reactions (kinds, polling cursor, flood limit), admin PIN and lockout |
 | `npm run load-test` | 200 concurrent submissions, zero errors, leaderboard catches up within 2 s |
-| `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the six results beats in order, the board, and the admin actions |
+| `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the results beats in order (ending on the thank-you card), reactions reaching `/leaderboard`, play again returning home with the dish ticked, the board, and the admin actions |
 
 `test:backend`, `load-test` and `test:e2e` need `scripts/local-db.sh start` first. `test:e2e` needs
 Playwright (`npm i -D playwright && npx playwright install chromium`) if it is not already on the machine.
@@ -94,7 +93,7 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
    supabase db push
    ```
 
-   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0004`. Each is
+   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0007`. Each is
    safe to run more than once.)
 
 3. Set the staff PIN:
@@ -103,7 +102,7 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
    supabase secrets set ADMIN_PIN=your-6-digit-pin
    ```
 
-4. Deploy the six functions (`supabase/config.toml` already turns the platform JWT check off for them; they
+4. Deploy the functions (`submit-run`, `leaderboard`, `vote`, `email`, `reactions`, `status`, `admin`, `claim-name`) (`supabase/config.toml` already turns the platform JWT check off for them; they
    do their own checks):
 
    ```bash
@@ -147,8 +146,7 @@ The side panel always says what it takes to get on ("BEAT 1,823" or "3 SPOTS OPE
 ## 5. Pre-event checklist
 
 - [ ] **Questions reviewed** by a human; `_comment` draft flag removed from `src/content/questions.json`.
-- [ ] **Real prizes** entered in `/admin` → Prizes (name changes need SQL: `update prizes set name = ...`),
-      with stock and weights. The fallback segment's weight is the `fallback_weight` config row (default 60).
+- [ ] **Gift card** bought and someone assigned to run the draw (entries come from `/admin` → Export).
 - [ ] **Vote bonus decision** confirmed with the organisers. One tap in `/admin` → Toggles turns it off.
 - [ ] **Load test against the real project:**
 
@@ -156,28 +154,28 @@ The side panel always says what it takes to get on ("BEAT 1,823" or "3 SPOTS OPE
       API_BASE=https://YOUR_PROJECT_REF.supabase.co/functions/v1 ANON_KEY=your-anon-key npm run load-test
       ```
 
-- [ ] **Reset before doors open** (clears test data, keeps prizes and config). Run in the Supabase SQL editor:
+- [ ] **Reset before doors open** (clears test data, keeps config). Run in the Supabase SQL editor:
 
       ```sql
-      truncate players, runs, spins, rate_limits cascade;
+      truncate players, runs, draw_entries, reactions, rate_limits cascade;
       ```
 
 - [ ] **Real devices:** play a full run on a low-end Android (about 3 GB RAM, Chrome) and an iPhone (Safari).
       Check frame rate, swipe feel, the notch/safe areas, and that iPhone feels fine without vibration.
 - [ ] **Offline drill:** load the game, switch on flight mode, finish a run, switch flight mode off, and
       watch the score save.
-- [ ] **Staff phones:** open `/admin`, enter the PIN, redeem a test code twice (the second must be refused).
+- [ ] **Staff phones:** open `/admin`, enter the PIN, check Runs, Toggles and Export load.
+- [ ] **Lucky draw:** enter a test `@iras.gov.sg` address from a phone, check the thank-you screen, and that the entry shows up in `/admin` → Export. Tap confetti and the emoji and watch them appear on `/leaderboard`.
 - [ ] **Booth TV:** open `/board` full-screen in landscape; check it is readable from 3 m and that the QR
       code scans from the queue.
-- [ ] **Top prize:** staff look at the top scorer's phone before handing it over.
 - [ ] **Playtest tuning:** median run should be 60 to 90 s. Adjust `src/config.ts` (see section 7).
 
 ## 6. Post-event
 
-1. Do the prize draw: `/admin` → Export → Download emails (CSV).
-2. Purge emails. In the Supabase SQL editor, run `scripts/purge-emails.sql`. It deletes every email whose
-   owner did not opt in to updates (as promised on the email screen) and prints how many remain. The file
-   also contains a commented one-liner that deletes **all** emails.
+1. Do the lucky draw: `/admin` → Export → Download lucky draw entries (CSV). The CSV also has the optional
+   "how can PRISM benefit you" feedback, which is the list of people to follow up with.
+2. Purge the entries. In the Supabase SQL editor, run `scripts/purge-emails.sql`. It deletes every entry
+   (as promised on the entry card) and prints how many remain. Export first if you still need the feedback.
 3. Turn submissions off: `/admin` → Toggles → Submissions open.
 4. Delete the downloaded CSV once the draw is done.
 
@@ -214,13 +212,13 @@ src/
   game/difficulty.ts       speed / gate / obstacle curves
   game/juice.ts            speed lines, fire trail, pop text, shake
   game/art/                pixel sprites as character grids, baked into one atlas at start-up
-  ui/                      HUD, results beats, wheel, confetti
+  ui/                      HUD, results beats, thank-you card and 3D beaver, confetti
   net/submitQueue.ts       localStorage queue with backoff: a finished run is never lost
   board/  leaderboard/  admin/   the other pages
 supabase/
   migrations/              tables, leaderboard view, SQL functions
   functions/_shared/       router.ts (all endpoint logic), scoring.ts (shared with the client)
-  functions/<name>/        one-line entry points: submit-run, leaderboard, spin, vote, email, admin
+  functions/<name>/        one-line entry points: submit-run, leaderboard, reactions, vote, email, admin
 scripts/                   local DB + backend, load test, email purge
 ```
 
@@ -230,10 +228,11 @@ scripts/                   local DB + backend, load test, email purge
 |---|---|
 | `POST /submit-run` | Validates and stores a run. Returns `rank`, `total_players`, `beat_count`, `run_id`. |
 | `GET /leaderboard?limit=10&device_id=...` | Top N, total plays, and the caller's rank. |
-| `POST /spin` | Server picks the prize (weighted, stock-capped) and returns it with a redeem code. |
+| `GET /reactions?since=<id>` / `POST /reactions` | Live reactions. Phones POST a kind (`confetti`, `heart`, `like`, `fire`, `penguin`, `party`); `/leaderboard` polls for the new ones each second. Limited to 12 per phone per 10 s. |
 | `POST /vote` | Sets or clears the player's "I voted" flag. |
-| `POST /email` | Saves the optional email and updates consent. |
-| `POST /admin/<action>` | PIN in the `x-admin-pin` header. Actions: `login`, `redeem`, `runs`, `delete-run`, `restore-run`, `prizes`, `set-prize`, `config`, `set-config`, `stats`, `export-emails`. |
+| `GET /status` | `{open: true/false}`. When staff close the site from `/admin` → Event, the game shows a pixel forest with beavers instead of the home screen. |
+| `POST /email` | Lucky draw entry: an exact `@iras.gov.sg` address (checked on the phone and on the server) plus optional feedback text. One entry per device and per email. |
+| `POST /admin/<action>` | PIN in the `x-admin-pin` header. Actions: `login`, `runs`, `delete-run`, `restore-run`, `config`, `set-config`, `stats`, `export-entries`, `reset` (needs `{"confirm":"RESET"}`). |
 
 **Anti-cheat** (lightweight by design): server-side score cap from run length and correct answers; runs
 over 185 s rejected; 10 s cooldown per device; rate limits per device and per IP; rank always computed by
@@ -259,24 +258,23 @@ the server; staff can remove any run live.
    result instead of creating a duplicate or tripping the cooldown.
 9. **A "cooldown" rejection is retried, not dropped.** Two runs finished offline are sent 10 s apart.
 10. **`questions.json` carries the draft flag as a `_comment` field,** because JSON cannot hold `//` comments.
-11. **Spins: one per run, as specified.** A player who replays can spin again. Prize weights, stock and the
-    fallback weight are what limit how fast prizes go; tune them in `/admin`.
-12. **Every spin gets a code,** including "Better luck next time + sticker", so the sticker can be redeemed
-    and counted too.
-13. **Redeem by typing the 5-character code** (no look-alike characters) into `/admin`. The player's prize
-    screen shows the code as large text; the team then holds DONE on the player's phone to mark it handed over.
+11. **No prizes to hand out.** The spin wheel, prize codes and staff redeem step are gone: the booth runs one
+    lucky draw (a $10 Starbucks gift card) from the email entries, drawn by hand from the CSV.
+12. **Lucky draw entries are IRAS-only** (exact `@iras.gov.sg`, any case, no subdomains) and there is no
+    consent checkbox: the card says the email is used only for the draw and to follow up on feedback.
+13. **Reactions poll, like the boards.** A `reactions` table and a `/reactions` endpoint; `/leaderboard` asks
+    for new ones every second and caps how many it shows at once, so a flood cannot bury the board.
 14. **The per-IP rate limit is generous (900 requests a minute)** because a whole venue usually shares one
     public IP address. The per-device limit (40 a minute) does the real work.
 15. **Admin PIN lockout:** 10 wrong PINs from one IP address locks `/admin` for that address for up to
     10 minutes. Because venue Wi-Fi shares one address, a prankster could lock staff out; staff can switch
     to mobile data, which has a different address.
-16. **Results beats the player has already completed are skipped** on later runs (vote already ticked, email
-    already given), which keeps "play again" fast. The vote beat is also skipped when the bonus is off or
+16. **Results beats the player has already completed are skipped** on later runs (vote already ticked, lucky draw
+    already entered), which keeps "play again" fast. The vote beat is also skipped when the bonus is off or
     the score has not saved yet.
 17. **Nicknames are trimmed to 16 characters with markup characters removed.** There is no profanity filter;
     staff remove offending runs in `/admin` → Runs.
-18. **Earlier prize codes are listed under a new win** on the spin screen, so a player who tapped "play
-    again" before reaching the staff does not lose a code. Codes are stored on the device only.
+18. **Play again returns to the home screen** and ticks the dish you just finished (kept on the device only).
 
 ## 10. Known limits
 

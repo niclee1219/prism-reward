@@ -8,11 +8,12 @@ import { RunSim, type RunResult } from './game/sim/RunSim';
 import { World } from './game/three/World';
 import { ApiError, claimName } from './net/api';
 import { deviceId, local, uuid } from './net/device';
+import { fetchOpen } from './net/status';
 import { enqueue, flush } from './net/submitQueue';
+import { hideClosed, showClosed } from './ui/closed';
 import { Hud } from './ui/hud';
 import { showHowto } from './ui/howto';
 import { showLeaderboard } from './ui/leaderboard';
-import { showPendingPrize } from './ui/prize';
 import { showResults } from './ui/results';
 
 registerSW({ immediate: true });
@@ -81,7 +82,7 @@ for (const d of DISHES) {
   b.className = 'dish';
   b.dataset.dish = d.id;
   b.style.setProperty('--dish', d.colour);
-  b.innerHTML = `<span class="dish-emoji">${d.emoji}</span><span class="dish-name">${d.name}</span>`;
+  b.innerHTML = `<span class="dish-done" hidden aria-label="Done">✓</span><span class="dish-emoji">${d.emoji}</span><span class="dish-name">${d.name}</span>`;
   b.setAttribute('aria-pressed', String(d.id === dish));
   b.addEventListener('click', () => {
     dish = d.id;
@@ -92,6 +93,31 @@ for (const d of DISHES) {
   picker.append(b);
 }
 $('dish-blurb').textContent = dishById(dish).blurb;
+
+/** Ticks every dish this device has finished a run on. */
+function renderDone(): void {
+  const done = local.doneDishes;
+  picker.querySelectorAll<HTMLElement>('.dish').forEach((x) => {
+    const isDone = done.includes(x.dataset.dish ?? '');
+    x.querySelector<HTMLElement>('.dish-done')!.hidden = !isDone;
+    x.setAttribute('aria-label', `${dishById(x.dataset.dish as DishId).name}${isDone ? ', done' : ''}`);
+  });
+}
+renderDone();
+
+/** Back to the home screen after a run. Nothing starts until the player taps PLAY. */
+function showHome(): void {
+  resultsScreen.hidden = true;
+  resultsScreen.innerHTML = '';
+  hud.show(false);
+  world.reset();
+  sim.idle();
+  renderName();
+  renderDone();
+  startScreen.classList.remove('leaving');
+  startScreen.hidden = false;
+  syncClosed();
+}
 
 attachInput(stage, (dir) => sim.move(dir));
 
@@ -104,10 +130,27 @@ function typedName(): string {
   return nickInput.value.replace(/\s+/g, ' ').trim().slice(0, NICKNAME_MAX);
 }
 
+// Staff can close the site from /admin. Players already running or on the results cards are never cut off:
+// the closed screen only covers the home screen, so it appears as soon as they go back to it.
+let siteOpen = true;
+const closedScreen = $('screen-closed');
+function syncClosed(): void {
+  if (siteOpen) hideClosed(closedScreen);
+  else if (!startScreen.hidden) showClosed(closedScreen);
+}
+async function refreshStatus(): Promise<void> {
+  siteOpen = await fetchOpen();
+  syncClosed();
+}
+void refreshStatus();
+setInterval(() => void refreshStatus(), 15_000);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void refreshStatus());
+
 let starting = false;
 
 async function play(): Promise<void> {
   if (starting) return; // a double tap on PLAY must not start two countdowns
+  if (!siteOpen) return syncClosed();
   starting = true;
   let nickname = local.locked;
   if (!nickname) {
@@ -165,6 +208,8 @@ async function play(): Promise<void> {
 
 function finish(result: RunResult, nickname: string): void {
   hud.show(false);
+  local.markDishDone(result.dish);
+  renderDone();
   const runId = uuid();
   // Queue first, so the run is safe even if the tab dies during the results screens.
   enqueue({
@@ -177,20 +222,11 @@ function finish(result: RunResult, nickname: string): void {
     duration_ms: result.duration_ms,
     dish: result.dish,
   });
-  showResults(resultsScreen, result, runId, nickname, () => {
-    syncPrizeButton();
-    void play();
-  });
+  showResults(resultsScreen, result, runId, nickname, showHome);
 }
 
 $('play').addEventListener('click', () => void play());
 $('open-board').addEventListener('click', () => showLeaderboard($('screen-board')));
 $('open-howto').addEventListener('click', () => showHowto($('screen-howto')));
-// A prize the team has not marked done yet survives refreshes and replays; once done, it is gone for good.
-const myPrize = $('open-prize');
-const syncPrizeButton = () => (myPrize.hidden = local.unredeemed.length === 0);
-myPrize.addEventListener('click', () => showPendingPrize($('screen-prize'), syncPrizeButton));
-syncPrizeButton();
 if (!local.seenHowto) showHowto($('screen-howto'));
-else showPendingPrize($('screen-prize'), syncPrizeButton);
 void flush(); // send anything left over from an earlier visit

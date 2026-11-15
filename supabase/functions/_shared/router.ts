@@ -23,7 +23,13 @@ export const LIMITS = {
 /** Must match the check constraint in migration 0004 and src/content/dishes.ts. */
 export const DISH_IDS: unknown[] = ['chicken-rice', 'char-kway-teow', 'laksa'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** Lucky-draw entries: IRAS addresses only (exact domain, any case, no subdomains). */
+const EMAIL = /^[^\s@]+@iras\.gov\.sg$/i;
+export const MESSAGE_MAX = 500;
+/** The word staff must type (and the admin API must receive) before everything is deleted. */
+export const RESET_WORD = 'RESET';
+/** Must match the check constraint on reactions.kind in migration 0006 and src/net/reactions.ts. */
+export const REACTION_KINDS: unknown[] = ['confetti', 'heart', 'like', 'fire', 'penguin', 'party'];
 
 const STATUS: Record<string, number> = {
   cooldown: 429,
@@ -33,12 +39,16 @@ const STATUS: Record<string, number> = {
   no_run: 404,
   no_player: 404,
   not_found: 404,
-  already_redeemed: 409,
+  already_entered: 409,
+  email_taken: 409,
+  unknown_device: 404,
+  bad_kind: 400,
   bonus_off: 409,
   run_id_taken: 409,
   implausible: 422,
   name_taken: 409,
   bad_name: 422,
+  bad_email: 422,
 };
 
 function cors(deps: Deps): Record<string, string> {
@@ -123,6 +133,13 @@ export async function handle(route: string, req: Request, deps: Deps): Promise<R
       const limit = Number(url.searchParams.get('limit') ?? 10);
       return reply(deps, await deps.rpc('prism_leaderboard', { p_limit: Number.isFinite(limit) ? Math.floor(limit) : 10, p_device_id: device ?? null }));
     }
+    if (route === 'status' && req.method === 'GET') {
+      return json(deps, { open: (await deps.rpc('prism_site_open', {})) !== false });
+    }
+    if (route === 'reactions' && req.method === 'GET') {
+      const since = Number(url.searchParams.get('since') ?? -1);
+      return reply(deps, await deps.rpc('prism_reactions', { p_since: Number.isFinite(since) ? Math.floor(since) : -1, p_limit: 60 }));
+    }
     if (req.method !== 'POST' || !isDevice(device)) return fail(deps, 'bad_request');
 
     switch (route) {
@@ -147,15 +164,24 @@ export async function handle(route: string, req: Request, deps: Deps): Promise<R
         if (String(body.nickname ?? '').trim() === '' || !isCleanName(name)) return fail(deps, 'bad_name');
         return reply(deps, await deps.rpc('prism_claim_name', { p_device_id: device, p_nickname: name }));
       }
-      case 'spin':
-        if (!UUID.test(String(body.run_id))) return fail(deps, 'bad_request');
-        return reply(deps, await deps.rpc('prism_spin', { p_run_id: body.run_id, p_device_id: device }));
+      case 'reactions': {
+        if (!REACTION_KINDS.includes(body.kind)) return fail(deps, 'bad_request');
+        // Tighter than the general per-device limit so a bored phone cannot flood the big screen.
+        if (!(await deps.rpc('prism_rate_ok', { p_key: `react:${device}`, p_max: 12, p_window_s: 10 }))) {
+          return fail(deps, 'rate_limited');
+        }
+        return reply(deps, await deps.rpc('prism_react', { p_kind: body.kind }));
+      }
       case 'vote':
         return reply(deps, await deps.rpc('prism_vote', { p_device_id: device, p_voted: body.voted === true }));
       case 'email': {
         const email = String(body.email ?? '').trim();
         if (email.length > 254 || !EMAIL.test(email)) return fail(deps, 'bad_email');
-        return reply(deps, await deps.rpc('prism_email', { p_device_id: device, p_email: email, p_consent: body.consent === true }));
+        const message = String(body.message ?? '')
+          .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/g, '')
+          .trim()
+          .slice(0, MESSAGE_MAX);
+        return reply(deps, await deps.rpc('prism_draw_enter', { p_device_id: device, p_email: email, p_message: message || null }));
       }
     }
     return fail(deps, 'not_found');
@@ -177,8 +203,10 @@ async function admin(req: Request, url: URL, body: any, ip: string, deps: Deps):
   switch (action) {
     case 'login':
       return json(deps, { ok: true });
-    case 'redeem':
-      return reply(deps, await deps.rpc('prism_admin_redeem', { p_code: String(body.code ?? '') }));
+    case 'reset':
+      // Deletes everything, so the server wants the word as well, not just a request that looks right.
+      if (body.confirm !== RESET_WORD) return fail(deps, 'bad_request');
+      return reply(deps, await deps.rpc('prism_admin_reset', {}));
     case 'runs':
       return reply(deps, await deps.rpc('prism_admin_runs', { p_search: String(body.search ?? ''), p_limit: 50 }));
     case 'delete-run':
@@ -187,24 +215,14 @@ async function admin(req: Request, url: URL, body: any, ip: string, deps: Deps):
       return reply(deps, await deps.rpc('prism_admin_set_run_status', {
         p_run_id: body.run_id, p_status: action === 'delete-run' ? 'removed' : 'valid',
       }));
-    case 'prizes':
-      return reply(deps, await deps.rpc('prism_admin_prizes', {}));
-    case 'set-prize': {
-      const stock = Number(body.stock);
-      const weight = body.weight == null ? null : Number(body.weight);
-      if (!UUID.test(String(body.id)) || !Number.isInteger(stock) || (weight !== null && !Number.isInteger(weight))) {
-        return fail(deps, 'bad_request');
-      }
-      return reply(deps, await deps.rpc('prism_admin_set_prize', { p_id: body.id, p_stock: stock, p_weight: weight }));
-    }
     case 'config':
       return reply(deps, await deps.rpc('prism_admin_config', {}));
     case 'set-config':
       return reply(deps, await deps.rpc('prism_admin_set_config', { p_key: String(body.key ?? ''), p_value: String(body.value ?? '') }));
     case 'stats':
       return reply(deps, await deps.rpc('prism_admin_stats', {}));
-    case 'export-emails':
-      return reply(deps, await deps.rpc('prism_admin_export_emails', {}));
+    case 'export-entries':
+      return reply(deps, await deps.rpc('prism_admin_export_entries', {}));
   }
   return fail(deps, 'not_found');
 }

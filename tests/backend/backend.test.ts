@@ -37,11 +37,9 @@ beforeAll(() => {
 });
 afterAll(() => pool.end());
 beforeEach(async () => {
-  await pool.query('truncate players, runs, spins, prizes, rate_limits cascade');
-  await pool.query(`update config set value = 'true' where key in ('vote_bonus_enabled', 'submissions_open')`);
+  await pool.query('truncate players, runs, draw_entries, reactions, rate_limits cascade');
+  await pool.query(`update config set value = 'true' where key in ('vote_bonus_enabled', 'submissions_open', 'site_open')`);
   await pool.query(`update config set value = '1.1' where key = 'vote_bonus_multiplier'`);
-  await pool.query(`update config set value = '60' where key = 'fallback_weight'`);
-  await pool.query(`insert into prizes (name, stock, weight) values ('Tote bag', 3, 10), ('Kopi voucher', 5, 10)`);
 });
 
 describe('submit-run', () => {
@@ -53,7 +51,7 @@ describe('submit-run', () => {
     expect(b.body).toMatchObject({ rank: 1, total_players: 2, beat_count: 1 });
     const c = await call('submit-run', run({ score: 500 }));
     expect(c.body).toMatchObject({ rank: 3, total_players: 3, beat_count: 0 });
-    expect(c.body.wheel).toEqual(['Kopi voucher', 'Tote bag', 'Better luck next time + sticker']);
+    expect(c.body.wheel).toBeUndefined();
   });
 
   it('rejects an impossible score', async () => {
@@ -140,41 +138,6 @@ describe('vote bonus', () => {
   });
 });
 
-describe('spin', () => {
-  it('is decided by the server, once per run, and only for the owning device', async () => {
-    const r = run();
-    await call('submit-run', r);
-    expect((await call('spin', { run_id: r.run_id, device_id: device() })).status).toBe(404);
-    const s1 = await call('spin', { run_id: r.run_id, device_id: r.device_id });
-    expect(s1.status).toBe(200);
-    expect(s1.body.code).toMatch(/^[A-HJKMNP-Z2-9]{5}$/);
-    expect(s1.body.segments[s1.body.index]).toBe(s1.body.prize_name);
-    const s2 = await call('spin', { run_id: r.run_id, device_id: r.device_id });
-    expect(s2.body.code).toBe(s1.body.code);
-    expect(s2.body.segments[s2.body.index]).toBe(s1.body.prize_name);
-    expect((await pool.query('select count(*)::int as n from spins')).rows[0].n).toBe(1);
-  });
-
-  it('never drives stock below zero under 50 parallel spins', async () => {
-    await pool.query(`update config set value = '1' where key = 'fallback_weight'`);
-    await pool.query(`update prizes set weight = 1000`); // nearly every spin wants a prize: 8 in stock
-    const runs = Array.from({ length: 50 }, () => run());
-    await Promise.all(runs.map((r) => call('submit-run', r)));
-    const spins = await Promise.all(runs.map((r) => call('spin', { run_id: r.run_id, device_id: r.device_id })));
-    expect(spins.every((s) => s.status === 200)).toBe(true);
-    const won = spins.filter((s) => s.body.prize_id).length;
-    expect(won).toBe(8);
-    const stock = await pool.query('select min(stock)::int as lo, sum(stock)::int as left from prizes');
-    expect(stock.rows[0]).toEqual({ lo: 0, left: 0 });
-    expect(new Set(spins.map((s) => s.body.code)).size).toBe(50);
-    // With everything out of stock, the wheel is just the fallback segment.
-    const r = run();
-    await call('submit-run', r);
-    const last = await call('spin', { run_id: r.run_id, device_id: r.device_id });
-    expect(last.body).toMatchObject({ prize_id: null, segments: ['Better luck next time + sticker'], index: 0 });
-  });
-});
-
 describe('admin', () => {
   it('needs the PIN and locks out after repeated wrong PINs', async () => {
     expect((await admin('stats', {}, 'nope')).status).toBe(401);
@@ -198,34 +161,159 @@ describe('admin', () => {
     expect((await call('leaderboard', undefined)).body.top[0].score).toBe(5000);
   });
 
-  it('redeems a code only once, even when two staff tap at the same time', async () => {
-    const r = run();
+  it('exports lucky draw entries and reports stats', async () => {
+    const r = run({ nickname: 'Kopi Peng' });
     await call('submit-run', r);
-    const spin = await call('spin', { run_id: r.run_id, device_id: r.device_id });
-    const [a, b] = await Promise.all([
-      admin('redeem', { code: spin.body.code.toLowerCase() }),
-      admin('redeem', { code: spin.body.code }),
-    ]);
-    expect([a.status, b.status].sort()).toEqual([200, 409]);
-    expect((await admin('redeem', { code: spin.body.code })).body.error).toBe('already_redeemed');
-    expect((await admin('redeem', { code: 'ZZZZZ' })).status).toBe(404);
-    expect((await call('spin', { run_id: r.run_id, device_id: r.device_id })).body.redeemed).toBe(true);
+    await call('email', { device_id: r.device_id, email: 'Kopi.Peng@IRAS.gov.sg', message: 'Would love this for my team' });
+    const rows = (await admin('export-entries')).body;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ nickname: 'Kopi Peng', email: 'kopi.peng@iras.gov.sg', message: 'Would love this for my team' });
+    expect((await admin('stats')).body).toMatchObject({ players: 1, valid_runs: 1, entries: 1 });
   });
 
-  it('edits prize stock, exports emails and reports stats', async () => {
-    const prizes = await admin('prizes');
-    const tote = prizes.body.find((p: any) => p.name === 'Tote bag');
-    expect((await admin('set-prize', { id: tote.id, stock: 0 })).body.ok).toBe(true);
-    expect((await admin('set-prize', { id: tote.id, stock: -1 })).status).toBe(400);
-    const r = run({ nickname: 'Kopi Peng' });
-    const sub = await call('submit-run', r);
-    expect(sub.body.wheel).toEqual(['Kopi voucher', 'Better luck next time + sticker']);
+  it('no longer has any prize or redeem actions', async () => {
+    for (const action of ['redeem', 'prizes', 'set-prize', 'export-emails']) {
+      expect((await admin(action, {})).status).toBe(404);
+    }
+  });
+});
 
-    expect((await call('email', { device_id: r.device_id, email: 'not-an-email' })).status).toBe(400);
-    expect((await call('email', { device_id: device(), email: 'a@b.sg' })).status).toBe(404);
-    expect((await call('email', { device_id: r.device_id, email: 'a@b.sg', consent: true })).body.ok).toBe(true);
-    expect((await admin('export-emails')).body).toEqual([{ nickname: `P${randomUUID().slice(0, 8)}`, email: 'a@b.sg', updates_consent: true }]);
-    expect((await admin('stats')).body).toMatchObject({ players: 1, valid_runs: 1, emails: 1 });
+describe('closing the site', () => {
+  it('is open by default, closes and reopens from admin, and anyone can ask', async () => {
+    expect((await call('status', undefined)).body).toEqual({ open: true });
+    expect((await admin('set-config', { key: 'site_open', value: 'false' })).body.ok).toBe(true);
+    expect((await call('status', undefined)).body).toEqual({ open: false });
+    expect((await admin('config')).body.site_open).toBe('false');
+    expect((await admin('set-config', { key: 'site_open', value: 'maybe' })).status).toBe(400);
+    await admin('set-config', { key: 'site_open', value: 'true' });
+    expect((await call('status', undefined)).body).toEqual({ open: true });
+  });
+
+  it('cannot be switched from outside admin', async () => {
+    expect((await call('admin', { key: 'site_open', value: 'false' }, { path: 'set-config' })).status).toBe(401);
+    expect((await call('status', undefined)).body.open).toBe(true);
+  });
+});
+
+describe('reset all data', () => {
+  it('needs the PIN and the confirmation word', async () => {
+    const r = run();
+    await call('submit-run', r);
+    expect((await admin('reset', { confirm: 'RESET' }, 'nope')).status).toBe(401);
+    expect((await admin('reset', {})).status).toBe(400);
+    expect((await admin('reset', { confirm: 'reset' })).status).toBe(400);
+    expect((await pool.query('select count(*)::int as n from runs')).rows[0].n).toBe(1); // nothing was deleted
+  });
+
+  it('deletes players, runs, entries and reactions, keeps the settings, and reports what it removed', async () => {
+    const a = run();
+    const b = run();
+    await call('submit-run', a);
+    await call('submit-run', b);
+    await call('email', { device_id: a.device_id, email: 'a@iras.gov.sg' });
+    await call('reactions', { device_id: a.device_id, kind: 'fire' });
+    await admin('set-config', { key: 'site_open', value: 'false' });
+
+    const res = await admin('reset', { confirm: 'RESET' });
+    expect(res.body).toEqual({ ok: true, deleted: { players: 2, runs: 2, entries: 1, reactions: 1 } });
+    for (const t of ['players', 'runs', 'draw_entries', 'reactions']) {
+      expect((await pool.query(`select count(*)::int as n from ${t}`)).rows[0].n, t).toBe(0);
+    }
+    expect((await call('leaderboard', undefined)).body).toMatchObject({ top: [], total_players: 0, total_plays: 0 });
+    expect((await admin('config')).body.site_open).toBe('false'); // settings survive
+    // A fresh start works: the same name and email can be used again.
+    expect((await call('submit-run', { ...a, run_id: randomUUID() })).status).toBe(200);
+    expect((await call('email', { device_id: a.device_id, email: 'a@iras.gov.sg' })).body.ok).toBe(true);
+  });
+});
+
+describe('lucky draw entry', () => {
+  const enter = (r: { device_id: string }, email: string, extra: Record<string, unknown> = {}) =>
+    call('email', { device_id: r.device_id, email, ...extra });
+
+  it('accepts only exact @iras.gov.sg addresses, in any case', async () => {
+    const r = run();
+    await call('submit-run', r);
+    for (const bad of ['not-an-email', 'a@gmail.com', 'a@x.iras.gov.sg', 'a@iras.gov.sg.evil.com', 'a@iras.gov', '@iras.gov.sg', 'a b@iras.gov.sg']) {
+      const res = await enter(r, bad);
+      expect(res.status, bad).toBe(422);
+      expect(res.body.error).toBe('bad_email');
+    }
+    expect((await enter(r, 'Jane.Tan@IRAS.GOV.SG')).body.ok).toBe(true);
+    expect((await pool.query('select email from draw_entries')).rows).toEqual([{ email: 'jane.tan@iras.gov.sg' }]);
+  });
+
+  it('needs a known device', async () => {
+    expect((await enter({ device_id: device() }, 'a@iras.gov.sg')).status).toBe(404);
+  });
+
+  it('allows one entry per device and one per email', async () => {
+    const a = run();
+    const b = run();
+    await call('submit-run', a);
+    await call('submit-run', b);
+    expect((await enter(a, 'one@iras.gov.sg')).body.ok).toBe(true);
+    expect((await enter(a, 'other@iras.gov.sg')).body.error).toBe('already_entered');
+    const dup = await enter(b, 'ONE@iras.gov.sg');
+    expect(dup.status).toBe(409);
+    expect(dup.body.error).toBe('email_taken');
+    await pool.query(`update runs set created_at = now() - interval '11 seconds'`); // past the cooldown
+    expect((await call('submit-run', { ...a, run_id: randomUUID(), score: 900 })).body.entered).toBe(true);
+    expect((await pool.query('select count(*)::int as n from draw_entries')).rows[0].n).toBe(1);
+  });
+
+  it('keeps the optional feedback short and plain', async () => {
+    const r = run();
+    await call('submit-run', r);
+    await enter(r, 'a@iras.gov.sg', { message: `<b>hi</b>${'x'.repeat(900)}` });
+    const m = (await pool.query('select message from draw_entries')).rows[0].message as string;
+    expect(m.length).toBe(500);
+    expect(m).not.toMatch(/[<>]/);
+    const blank = run();
+    await call('submit-run', blank);
+    await enter(blank, 'b@iras.gov.sg', { message: '   ' });
+    expect((await pool.query(`select message from draw_entries where email = 'b@iras.gov.sg'`)).rows[0].message).toBeNull();
+  });
+});
+
+describe('reactions', () => {
+  const react = (device_id: string, kind: string) => call('reactions', { device_id, kind });
+
+  it('stores reactions and serves only the new ones', async () => {
+    const first = await call('reactions', undefined, { query: '?since=-1' });
+    expect(first.body).toEqual({ latest: 0, items: [] }); // a fresh screen learns the cursor, no replay
+    const d = device();
+    expect((await react(d, 'heart')).body.ok).toBe(true);
+    expect((await react(d, 'confetti')).body.ok).toBe(true);
+    const got = await call('reactions', undefined, { query: '?since=0' });
+    expect(got.body.items.map((i: any) => i.kind)).toEqual(['heart', 'confetti']);
+    const latest = got.body.latest;
+    expect((await call('reactions', undefined, { query: `?since=${latest}` })).body.items).toEqual([]);
+    await react(d, 'penguin');
+    expect((await call('reactions', undefined, { query: `?since=${latest}` })).body.items.map((i: any) => i.kind)).toEqual(['penguin']);
+  });
+
+  it('only knows the six kinds', async () => {
+    const d = device();
+    for (const kind of ['confetti', 'heart', 'like', 'fire', 'penguin', 'party']) {
+      expect((await react(d, kind)).status, kind).toBe(200);
+    }
+    expect((await react(d, 'skull')).status).toBe(400);
+    expect((await call('reactions', { device_id: d })).status).toBe(400);
+  });
+
+  it('stops one phone from flooding the big screen', async () => {
+    const d = device();
+    const statuses: number[] = [];
+    for (let i = 0; i < 14; i++) statuses.push((await react(d, 'fire')).status);
+    expect(statuses.filter((s) => s === 200)).toHaveLength(12);
+    expect(statuses.slice(12)).toEqual([429, 429]);
+  });
+
+  it('ignores reactions older than two minutes', async () => {
+    await react(device(), 'like');
+    await pool.query(`update reactions set created_at = now() - interval '3 minutes'`);
+    expect((await call('reactions', undefined, { query: '?since=0' })).body.items).toEqual([]);
   });
 });
 

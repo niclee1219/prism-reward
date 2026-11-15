@@ -4,6 +4,7 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -37,11 +38,10 @@ async function waitFor(url) {
 await waitFor(`${WEB}/`);
 await waitFor('http://localhost:8787/leaderboard');
 
-// Clean slate, with one prize that is certain to be won.
+// Clean slate.
 const pg = require('pg');
 const db = new pg.Pool({ connectionString: process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54329/prism' });
-await db.query('truncate players, runs, spins, prizes, rate_limits cascade');
-await db.query(`insert into prizes (name, stock, weight) values ('Test tote bag', 5, 100000)`);
+await db.query('truncate players, runs, draw_entries, reactions, rate_limits cascade');
 await db.query(`update config set value = 'true' where key in ('vote_bonus_enabled', 'submissions_open')`);
 
 const browser = await chromium.launch();
@@ -165,28 +165,54 @@ try {
   assert.equal(await page.locator('.pain').count(), 4);
   await page.click('#next');
   assert.equal(await beat(), 'email');
-  assert.match(await page.textContent('.notice'), /Optional: used only for the prize draw and PRISM updates/);
-  await page.fill('#email', 'tester@example.com');
+  assert.match(await page.textContent('#screen-results'), /win a \$10 Starbucks gift card/);
+  assert.match(await page.textContent('.notice'), /Only @iras\.gov\.sg emails/);
+  // The big /leaderboard screen is already open, so it will see the reactions sent below.
+  const lb = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  const firstPoll = lb.waitForResponse((r) => r.url().includes('/reactions?since=-1'));
+  await lb.goto(`${WEB}/leaderboard/`);
+  await firstPoll; // the screen has learned the newest reaction id, so it only shows what comes next
+  await page.fill('#email', 'tester@gmail.com');
   await page.click('#email-send');
-  await until(async () => (await page.textContent('#screen-results')).includes("You're in the draw"), 5000, 'email');
-  await page.click('#next');
-  assert.equal(await beat(), 'spin');
-  if (process.env.SHOT_DIR) {
-    await page.waitForTimeout(3500);
-    await page.screenshot({ path: `${process.env.SHOT_DIR}/wheel.png` });
-  }
-  await page.click('#spin');
-  await page.waitForSelector('#redeem', { timeout: 10000 });
-  const code = (await page.textContent('#redeem .code')).trim();
-  assert.match(code, /^[A-Z2-9]{5}$/);
-  assert.match(await page.textContent('#redeem'), /Test tote bag/);
-  step(`results beats in order (with BACK): score, board, recipe, vote, cited answer, pain points, email, spin (won code ${code})`);
-  await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/redeem.png` : 'tests/e2e/.last-redeem.png' });
+  await until(async () => (await page.textContent('#screen-results .msg')).includes('@iras.gov.sg'), 5000, 'non-IRAS email refused');
+  assert.equal(await beat(), 'email');
+  await page.fill('#email', 'Tester@IRAS.gov.sg');
+  await page.fill('#feedback', 'PRISM could help my team find the right section fast.');
+  await page.click('#email-send');
+  await until(async () => (await beat()) === 'thanks', 5000, 'thank-you after entering');
+  const entry = (await db.query('select email, message from draw_entries')).rows;
+  assert.deepEqual(entry, [{ email: 'tester@iras.gov.sg', message: 'PRISM could help my team find the right section fast.' }]);
+  step('email card: non-IRAS refused, IRAS email + feedback saved, lands on the thank-you screen');
 
-  // 6. Play again is one tap.
+  // 5b. Thank-you: beaver, confetti button, emoji reactions that reach the big screen.
+  await page.waitForSelector('.beaver-stage canvas, .beaver-fallback');
+  assert.equal(await page.textContent('#next'), 'PLAY AGAIN');
+  // The big screen polls every second; it must receive the emoji the phone sends.
+  const seenOnBoard = lb.waitForResponse(async (r) => r.url().includes('/reactions?since=') && !r.url().includes('since=-1') && (await r.json()).items?.some((i) => i.kind === 'fire'), { timeout: 8000 });
+  await page.click('#confetti-btn');
+  await page.waitForSelector('canvas.confetti');
+  await page.waitForTimeout(800); // the phone throttles sends a little
+  await page.click('.react-btn[data-kind="fire"]');
+  await page.waitForSelector('.floaty');
+  await seenOnBoard;
+  const kinds = (await db.query('select kind from reactions order by id')).rows.map((r) => r.kind);
+  assert.deepEqual(kinds, ['confetti', 'fire']);
+  if (process.env.SHOT_DIR) {
+    await page.screenshot({ path: `${process.env.SHOT_DIR}/thanks.png` });
+    await lb.screenshot({ path: `${process.env.SHOT_DIR}/leaderboard-reactions.png` });
+  }
+  step('thank-you: beaver shown, confetti + emoji reach the /leaderboard screen');
+  await lb.close();
+
+  step(`results beats in order (with BACK): score, board, recipe, vote, cited answer, pain points, email, thanks`);
+
+  // 6b. Play again goes home (it does not start a run) and ticks the dish.
   await page.click('#next');
-  await until(async () => (await state()).mode === 'run', 3000, 'play again');
-  step('play again starts a run in one tap');
+  await page.waitForSelector('#screen-start:not([hidden])');
+  assert.notEqual((await state()).mode, 'run', 'play again must not start a run');
+  assert.ok(await page.isHidden('#screen-results'));
+  assert.ok(await page.locator('.dish-done:not([hidden])').count() >= 1, 'finished dish is ticked');
+  step('play again returns to the home screen with the finished dish ticked');
 
   // 7. Booth board.
   const board = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -198,7 +224,7 @@ try {
   if (process.env.SHOT_DIR) await board.screenshot({ path: `${process.env.SHOT_DIR}/board.png` });
   step('board shows the top list, KING OF THE HILL, QR and play count');
 
-  // 8. Admin: redeem once only, toggle vote bonus off, delete a run live.
+  // 8. Admin: toggle vote bonus off, delete a run live, export the draw.
   const admin = await ctx.newPage();
   await admin.goto(`${WEB}/admin/`);
   await admin.fill('#pin', '999999');
@@ -207,14 +233,9 @@ try {
   await admin.fill('#pin', PIN);
   await admin.click('#login button');
   await admin.waitForSelector('#app:not([hidden])');
-  await admin.fill('#code', code);
-  await admin.click('#redeem-form button');
-  await admin.waitForSelector('#redeem-result.ok');
-  await admin.fill('#code', code);
-  await admin.click('#redeem-form button');
-  await admin.waitForSelector('#redeem-result.bad');
-  assert.match(await admin.textContent('#redeem-result'), /Already redeemed/);
-  step('admin: wrong PIN refused; code redeems once, second attempt refused');
+  assert.equal(await admin.locator('#tabs button').count(), 4);
+  assert.equal(await admin.locator('[data-tab="redeem"], [data-tab="prizes"]').count(), 0);
+  step('admin: wrong PIN refused; only Runs, Toggles, Export and Event remain');
 
   const scoreWithBonus = (await db.query('select score from leaderboard')).rows[0].score;
   await admin.click('[data-tab="toggles"]');
@@ -233,7 +254,63 @@ try {
   }
   await board.waitForFunction(() => document.querySelectorAll('.row').length === 0, null, { timeout: 5000 });
   step('admin: deleted runs vanish from the live board within the polling interval');
+  await admin.click('[data-tab="export"]');
+  await admin.waitForSelector('#stats div');
+  const [dl] = await Promise.all([admin.waitForEvent('download'), admin.click('#export-entries')]);
+  const csv = await readFile(await dl.path(), 'utf8');
+  assert.match(csv, /tester@iras\.gov\.sg/);
+  assert.match(csv, /PRISM could help my team/);
+  step('admin: lucky draw entries export as CSV');
   if (process.env.SHOT_DIR) await admin.screenshot({ path: `${process.env.SHOT_DIR}/admin.png` });
+
+  // 8b. Close the site: players see the beaver forest and cannot play. Then reopen.
+  await admin.click('[data-tab="event"]');
+  await admin.waitForFunction(() => document.getElementById('site-state').textContent.includes('OPEN'));
+  await admin.click('#site-toggle');
+  assert.ok(await admin.isVisible('#modal'), 'closing asks first');
+  await admin.click('#modal-cancel');
+  assert.ok(await admin.isHidden('#modal'));
+  assert.match(await admin.textContent('#site-state'), /OPEN/, 'cancel leaves the site open');
+  await admin.click('#site-toggle');
+  await admin.click('#modal-ok');
+  await admin.waitForFunction(() => document.getElementById('site-state').textContent.includes('CLOSED'));
+  const visitor = await browser.newPage({ ...devices['Pixel 5'] });
+  visitor.on('pageerror', (e) => errors.push(e.message));
+  await visitor.addInitScript(() => localStorage.setItem('prism.howto', '1'));
+  await visitor.goto(`${WEB}/`);
+  await visitor.waitForSelector('#screen-closed:not([hidden]) canvas.forest');
+  assert.match(await visitor.textContent('#screen-closed'), /WE'RE CLOSED/);
+  await visitor.waitForTimeout(1500); // let the beavers move
+  if (process.env.SHOT_DIR) await visitor.screenshot({ path: `${process.env.SHOT_DIR}/closed.png` });
+  assert.notEqual((await visitor.evaluate(() => window.__prism.debugState())).mode, 'run');
+  await visitor.click('#play', { force: true }).catch(() => {});
+  assert.notEqual((await visitor.evaluate(() => window.__prism.debugState())).mode, 'run', 'cannot play while closed');
+  step('admin: closing the site shows the beaver forest and blocks play');
+  // Reopen: the open page notices within its polling interval (shortened here by a visibility refresh).
+  await admin.click('#site-toggle'); // reopen needs no warning
+  await admin.waitForFunction(() => document.getElementById('site-state').textContent.includes('OPEN'));
+  await visitor.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await visitor.waitForSelector('#screen-closed', { state: 'hidden', timeout: 5000 });
+  step('admin: reopening lets players back in without a reload');
+  await visitor.close();
+
+  // 8c. Reset all data: warning, must type RESET, cancel keeps everything.
+  await admin.click('#reset-open');
+  await admin.waitForSelector('#modal:not([hidden])');
+  assert.match(await admin.textContent('#modal'), /PERMANENTLY deletes/);
+  assert.ok(await admin.isDisabled('#modal-ok'), 'delete is disabled until RESET is typed');
+  await admin.fill('#modal-input', 'reset please');
+  assert.ok(await admin.isDisabled('#modal-ok'));
+  await admin.click('#modal-cancel');
+  assert.ok((await db.query('select count(*)::int n from players')).rows[0].n > 0, 'cancel deletes nothing');
+  await admin.click('#reset-open');
+  await admin.fill('#modal-input', 'RESET');
+  await admin.click('#modal-ok');
+  await admin.waitForFunction(() => document.getElementById('reset-msg').textContent.startsWith('Done.'));
+  for (const t of ['players', 'runs', 'draw_entries', 'reactions']) {
+    assert.equal((await db.query(`select count(*)::int n from ${t}`)).rows[0].n, 0, t);
+  }
+  step('admin: reset needs a warning and the word RESET; it then deletes all data');
 
   // 9. A perfect run serves the dish: 8 steps recovered ends the run as a win.
   //    The bot is kept shielded so obstacles cannot end the run first.
@@ -257,7 +334,9 @@ try {
   assert.match(await winner.textContent('#screen-results h2'), /DISH SERVED/);
   assert.match(await winner.textContent('#screen-results'), /Ah Ma's Laksa/);
   assert.equal((await winner.evaluate(() => window.__prism.debugState())).recovered, 8);
-  await winner.click('#next');
+  await winner.click('#next'); // leaderboard card
+  await winner.click('#next'); // recipe card
+  assert.equal(await winner.getAttribute('#screen-results .beat', 'data-beat'), 'recipe');
   assert.equal(await winner.locator('.recipe-list li.got').count(), 8);
   step('a perfect run recovers all 8 steps: DISH SERVED, full recipe decoded');
 

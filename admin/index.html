@@ -17,29 +17,15 @@
 
     <main id="app" hidden>
       <nav class="tabs" id="tabs">
-        <button data-tab="redeem" class="on">Redeem</button>
-        <button data-tab="runs">Runs</button>
-        <button data-tab="prizes">Prizes</button>
+        <button data-tab="runs" class="on">Runs</button>
         <button data-tab="toggles">Toggles</button>
         <button data-tab="export">Export</button>
+        <button data-tab="event">Event</button>
       </nav>
 
-      <section data-panel="redeem">
-        <form id="redeem-form" class="row-form">
-          <input id="code" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" />
-          <button class="btn" type="submit">Redeem</button>
-        </form>
-        <div id="redeem-result" class="result"></div>
-      </section>
-
-      <section data-panel="runs" hidden>
+      <section data-panel="runs">
         <input id="run-search" class="field" placeholder="Search nickname" autocomplete="off" />
         <div id="runs-list" class="list"></div>
-      </section>
-
-      <section data-panel="prizes" hidden>
-        <div id="prizes-list" class="list"></div>
-        <p class="notice">Stock is what is left to win. Weight is the chance relative to the other prizes.</p>
       </section>
 
       <section data-panel="toggles" hidden>
@@ -48,10 +34,38 @@
 
       <section data-panel="export" hidden>
         <div id="stats" class="stats-grid"></div>
-        <button class="btn" id="export-emails" type="button">Download emails (CSV)</button>
+        <button class="btn" id="export-entries" type="button">Download lucky draw entries (CSV)</button>
         <div class="msg" id="export-msg"></div>
       </section>
+
+      <section data-panel="event" hidden>
+        <div class="card">
+          <h2>Site status</h2>
+          <p id="site-state" class="state">Checking...</p>
+          <p class="notice">Closed: anyone opening the game sees the beaver forest and cannot play. Players already mid-run can finish and save their score.</p>
+          <button class="btn" id="site-toggle" type="button">...</button>
+        </div>
+
+        <div class="card danger">
+          <h2>⚠ Reset all data</h2>
+          <p class="notice">Permanently deletes every player, score, lucky draw entry and reaction. Settings are kept. This cannot be undone, so export the lucky draw entries first.</p>
+          <button class="btn danger-btn" id="reset-open" type="button">Reset all data…</button>
+          <div class="msg" id="reset-msg"></div>
+        </div>
+      </section>
     </main>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="modal-title">
+        <h2 id="modal-title"></h2>
+        <div id="modal-body"></div>
+        <input id="modal-input" class="field" autocomplete="off" autocapitalize="characters" spellcheck="false" hidden />
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="modal-cancel" type="button">Cancel</button>
+          <button class="btn" id="modal-ok" type="button"></button>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/admin/admin.ts"></script>
   </body>
 </html>

@@ -137,12 +137,15 @@ export const JUICE = {
     coinDouble: [8, 30, 8],
     /** A whole coin line without missing one. */
     perfect: [10, 30, 10, 30, 40],
-    /** Results and wheel: peg ticks, the big reveal, and a win. */
+    /** Results: ticks, the big reveal, and a win. */
     tick: 5,
     thump: 40,
     win: [30, 60, 30, 60, 140],
+    /** Thank-you screen: a light pop for an emoji, a drumroll for the confetti button. */
+    pop: [12, 30, 18],
+    party: [25, 40, 25, 40, 25, 40, 25, 40, 160],
   },
-  /** Minimum gap between two light ticks (coins, wheel pegs), so they read as a ripple, not a hum. */
+  /** Minimum gap between two light ticks (coins, results ticks), so they read as a ripple, not a hum. */
   TICK_GAP_MS: 45,
 };
 
@@ -156,6 +159,9 @@ export const NET = {
   RETRY_MAX_MS: 20_000,
   REQUEST_TIMEOUT_MS: 8000,
   BOARD_POLL_MS: 2000,
+  /** How often the big screen asks for new reactions, and the minimum gap between two sent by one phone. */
+  REACTION_POLL_MS: 1000,
+  REACTION_GAP_MS: 700,
 };
 
 export const NICKNAME_MAX = 16;

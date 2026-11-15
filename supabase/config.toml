@@ -4,7 +4,7 @@
 verify_jwt = false
 [functions.leaderboard]
 verify_jwt = false
-[functions.spin]
+[functions.reactions]
 verify_jwt = false
 [functions.vote]
 verify_jwt = false
@@ -13,4 +13,6 @@ verify_jwt = false
 [functions.admin]
 verify_jwt = false
 [functions.claim-name]
+verify_jwt = false
+[functions.status]
 verify_jwt = false

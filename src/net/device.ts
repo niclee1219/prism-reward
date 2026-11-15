@@ -68,15 +68,6 @@ export function deviceId(): string {
   return id;
 }
 
-export interface WonPrize {
-  code: string;
-  name: string;
-  won_at: number;
-  /** False for the consolation segment (sticker), true for a real prize. */
-  won?: boolean;
-  nickname?: string;
-}
-
 export const local = {
   get nickname(): string | null {
     return getItem('prism.nickname');
@@ -118,29 +109,12 @@ export const local = {
   set emailGiven(v: boolean) {
     setItem('prism.email', v ? '1' : '0');
   },
-  get prizes(): WonPrize[] {
-    return getJson<WonPrize[]>('prism.prizes', []);
+  /** Dishes this device has finished a run on (served or not). Shown as a tick on the home screen. */
+  get doneDishes(): string[] {
+    return getJson<string[]>('prism.done', []);
   },
-  addPrize(p: WonPrize) {
-    setJson('prism.prizes', [p, ...this.prizes.filter((x) => x.code !== p.code)].slice(0, 10));
-  },
-  /** Codes the PRISM team has marked as handed over. Kept in localStorage and a cookie, like the device id. */
-  get redeemed(): string[] {
-    const stored = getJson<string[]>('prism.redeemed', []);
-    const cookie = (readCookie('prism.redeemed') ?? '').split(',').filter(Boolean);
-    return [...new Set([...stored, ...cookie])];
-  },
-  markRedeemed(code: string) {
-    const all = [...new Set([code, ...this.redeemed])].slice(0, 20);
-    setJson('prism.redeemed', all);
-    writeCookie('prism.redeemed', all.join(','));
-  },
-  isRedeemed(code: string): boolean {
-    return this.redeemed.includes(code);
-  },
-  /** Prizes won on this device that have not been handed over yet, newest first. */
-  get unredeemed(): WonPrize[] {
-    const done = new Set(this.redeemed);
-    return this.prizes.filter((p) => !done.has(p.code));
+  markDishDone(id: string) {
+    const all = this.doneDishes;
+    if (!all.includes(id)) setJson('prism.done', [...all, id]);
   },
 };

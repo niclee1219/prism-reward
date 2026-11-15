@@ -1,4 +1,4 @@
-// Staff page: redeem prizes, remove runs, edit prize stock, flip toggles, export emails.
+// Staff page: remove runs, flip toggles, see stats, export the lucky-draw entries, close the site and reset all data.
 import '../ui/styles.css';
 import './admin.css';
 import { ApiError, api } from '../net/api';
@@ -34,7 +34,7 @@ async function unlock(): Promise<void> {
     sessionStorage.setItem('prism.pin', pin);
     loginForm.hidden = true;
     app.hidden = false;
-    $('code').focus();
+    loadRuns();
   } catch (e) {
     pin = '';
     sessionStorage.removeItem('prism.pin');
@@ -49,38 +49,13 @@ loginForm.addEventListener('submit', (ev) => {
 if (pin) void unlock();
 
 // ---------- tabs ----------
-const loaders: Record<string, () => void> = { runs: loadRuns, prizes: loadPrizes, toggles: loadToggles, export: loadStats };
+const loaders: Record<string, () => void> = { runs: loadRuns, toggles: loadToggles, export: loadStats, event: loadEvent };
 $('tabs').addEventListener('click', (ev) => {
   const tab = (ev.target as HTMLElement).dataset.tab;
   if (!tab) return;
   document.querySelectorAll<HTMLElement>('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
   document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== tab));
   loaders[tab]?.();
-});
-
-// ---------- redeem ----------
-const codeInput = $<HTMLInputElement>('code');
-const redeemResult = $('redeem-result');
-async function redeem(code: string): Promise<void> {
-  if (!code.trim()) return;
-  redeemResult.className = 'result';
-  redeemResult.textContent = 'Checking...';
-  try {
-    const r = await call<{ prize_name: string; nickname: string; code: string }>('redeem', { code });
-    redeemResult.className = 'result ok';
-    redeemResult.textContent = `✔ ${r.prize_name}`;
-    redeemResult.append(h('small', '', `${r.code} · ${r.nickname} · hand over the prize`));
-    codeInput.value = '';
-  } catch (e) {
-    redeemResult.className = 'result bad';
-    if (e instanceof ApiError && e.code === 'already_redeemed') redeemResult.textContent = '✖ Already redeemed. Do not hand over.';
-    else if (e instanceof ApiError && e.code === 'not_found') redeemResult.textContent = '✖ No such code.';
-    else redeemResult.textContent = explain(e);
-  }
-}
-$('redeem-form').addEventListener('submit', (ev) => {
-  ev.preventDefault();
-  void redeem(codeInput.value);
 });
 
 // ---------- runs ----------
@@ -108,47 +83,6 @@ async function loadRuns(): Promise<void> {
         void loadRuns();
       });
       item.append(info, btn);
-      list.append(item);
-    }
-  } catch (e) {
-    list.textContent = explain(e);
-  }
-}
-
-// ---------- prizes ----------
-interface PrizeRow { id: string; name: string; stock: number; weight: number; won: number; redeemed: number }
-async function loadPrizes(): Promise<void> {
-  const list = $('prizes-list');
-  try {
-    const rows = await call<PrizeRow[]>('prizes');
-    list.innerHTML = '';
-    for (const p of rows) {
-      const item = h('div', 'item');
-      const info = h('div', 'grow');
-      info.append(h('div', 't', p.name), h('div', 's', `${p.won} won · ${p.redeemed} redeemed`));
-      const mk = (label: string, value: number) => {
-        const l = h('label', '', label);
-        const i = document.createElement('input');
-        i.type = 'number';
-        i.min = '0';
-        i.value = String(value);
-        l.append(i);
-        return { l, i };
-      };
-      const stock = mk('stock', p.stock);
-      const weight = mk('weight', p.weight);
-      const save = h('button', 'neutral', 'Save') as HTMLButtonElement;
-      save.addEventListener('click', async () => {
-        save.disabled = true;
-        try {
-          await call('set-prize', { id: p.id, stock: Number(stock.i.value), weight: Number(weight.i.value) });
-          save.textContent = 'Saved';
-        } catch (e) {
-          alert(explain(e));
-        }
-        save.disabled = false;
-      });
-      item.append(info, stock.l, weight.l, save);
       list.append(item);
     }
   } catch (e) {
@@ -204,8 +138,7 @@ async function loadToggles(): Promise<void> {
 // ---------- export + stats ----------
 const STAT_LABELS: Record<string, string> = {
   players: 'players', valid_runs: 'runs on the board', top_score: 'top score', avg_score: 'average score',
-  median_duration_s: 'median run (s)', avg_correct_pct: '% answers correct', spins: 'spins',
-  prizes_won: 'prizes won', redeemed: 'codes redeemed', emails: 'emails', voted: 'ticked "voted"',
+  median_duration_s: 'median run (s)', avg_correct_pct: '% answers correct', entries: 'lucky draw entries', voted: 'ticked "voted"',
 };
 async function loadStats(): Promise<void> {
   const grid = $('stats');
@@ -221,19 +154,115 @@ async function loadStats(): Promise<void> {
     grid.textContent = explain(e);
   }
 }
-$('export-emails').addEventListener('click', async () => {
+$('export-entries').addEventListener('click', async () => {
   const msg = $('export-msg');
   try {
-    const rows = await call<{ nickname: string; email: string; updates_consent: boolean }[]>('export-emails');
+    const rows = await call<{ nickname: string; email: string; message: string | null; created_at: string }[]>('export-entries');
     // Quote every cell, and defuse values a spreadsheet would run as a formula.
-    const esc = (v: unknown) => `"${String(v).replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"`;
-    const csv = ['nickname,email,updates_consent', ...rows.map((r) => [r.nickname, r.email, r.updates_consent].map(esc).join(','))].join('\n');
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/^([=+\-@\t\r])/, "'$1").replace(/"/g, '""')}"`;
+    const csv = ['nickname,email,feedback,entered_at', ...rows.map((r) => [r.nickname, r.email, r.message, r.created_at].map(esc).join(','))].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = 'prism-run-emails.csv';
+    a.download = 'prism-run-lucky-draw.csv';
     a.click();
-    msg.textContent = `${rows.length} email${rows.length === 1 ? '' : 's'} exported.`;
+    msg.textContent = `${rows.length} entr${rows.length === 1 ? 'y' : 'ies'} exported.`;
   } catch (e) {
+    msg.textContent = explain(e);
+  }
+});
+
+// ---------- event: close the site, reset all data ----------
+interface ModalOptions { title: string; body: HTMLElement; ok: string; danger?: boolean; type?: string }
+/** A warning dialog. Resolves true only if the person confirms (and, if `type` is set, types that word). */
+function confirmModal(o: ModalOptions): Promise<boolean> {
+  const modal = $('modal');
+  const box = modal.querySelector<HTMLElement>('.modal-box')!;
+  const input = $<HTMLInputElement>('modal-input');
+  const ok = $<HTMLButtonElement>('modal-ok');
+  $('modal-title').textContent = o.title;
+  const body = $('modal-body');
+  body.innerHTML = '';
+  body.append(o.body);
+  box.classList.toggle('danger', !!o.danger);
+  ok.textContent = o.ok;
+  ok.classList.toggle('danger-btn', !!o.danger);
+  input.hidden = !o.type;
+  input.value = '';
+  input.placeholder = o.type ? `Type ${o.type}` : '';
+  ok.disabled = !!o.type;
+  modal.hidden = false;
+  if (o.type) input.focus();
+  return new Promise((resolve) => {
+    const done = (v: boolean) => {
+      modal.hidden = true;
+      ok.removeEventListener('click', yes);
+      $('modal-cancel').removeEventListener('click', no);
+      input.removeEventListener('input', check);
+      resolve(v);
+    };
+    const yes = () => done(true);
+    const no = () => done(false);
+    const check = () => (ok.disabled = input.value.trim() !== o.type);
+    ok.addEventListener('click', yes);
+    $('modal-cancel').addEventListener('click', no);
+    input.addEventListener('input', check);
+  });
+}
+
+let siteOpen = true;
+async function loadEvent(): Promise<void> {
+  try {
+    const cfg = await call<Record<string, string>>('config');
+    siteOpen = cfg.site_open !== 'false';
+    $('site-state').textContent = siteOpen ? '🟢 OPEN: players can play' : '🔴 CLOSED: players see the forest';
+    $('site-toggle').textContent = siteOpen ? 'Close the site…' : 'Reopen the site';
+    $('site-toggle').classList.toggle('danger-btn', siteOpen);
+  } catch (e) {
+    $('site-state').textContent = explain(e);
+  }
+}
+$('site-toggle').addEventListener('click', async () => {
+  if (siteOpen) {
+    const body = h('p', '', 'Anyone who opens the game will see the "We\'re closed" forest screen and cannot start a run. Players already mid-run can finish and save their score. You can reopen at any time.');
+    if (!(await confirmModal({ title: 'Close the site?', body, ok: 'Close the site', danger: true }))) return;
+  }
+  try {
+    await call('set-config', { key: 'site_open', value: String(!siteOpen) });
+  } catch (e) {
+    alert(explain(e));
+  }
+  void loadEvent();
+});
+
+$('reset-open').addEventListener('click', async () => {
+  const msg = $('reset-msg');
+  msg.className = 'msg';
+  msg.textContent = '';
+  let counts: Record<string, number> = {};
+  try {
+    counts = await call<Record<string, number>>('stats');
+  } catch (e) {
+    msg.className = 'msg err';
+    msg.textContent = explain(e);
+    return;
+  }
+  const body = h('div');
+  body.append(h('p', '', 'This PERMANENTLY deletes:'));
+  const ul = h('ul');
+  for (const line of [
+    `${counts.players ?? 0} players and their names`,
+    `${counts.runs ?? 0} runs and the whole leaderboard`,
+    `${counts.entries ?? 0} lucky draw entries (emails and feedback)`,
+    'all live reactions',
+  ]) ul.append(h('li', '', line));
+  body.append(ul, h('p', '', 'Settings are kept. There is no undo. Download the lucky draw entries from the Export tab first if you need them.'));
+  const yes = await confirmModal({ title: '⚠ Reset ALL data?', body, ok: 'Delete everything', danger: true, type: 'RESET' });
+  if (!yes) return;
+  try {
+    const r = await call<{ deleted: Record<string, number> }>('reset', { confirm: 'RESET' });
+    msg.textContent = `Done. Deleted ${r.deleted.players} players, ${r.deleted.runs} runs, ${r.deleted.entries} entries and ${r.deleted.reactions} reactions.`;
+  } catch (e) {
+    msg.className = 'msg err';
     msg.textContent = explain(e);
   }
 });

@@ -28,7 +28,8 @@ export interface SubmitResult extends RankInfo {
   voted: boolean;
   is_new: boolean;
   nickname: string;
-  wheel: string[];
+  /** True if this device is already in the lucky draw. */
+  entered?: boolean;
 }
 
 export async function claimName(deviceId: string, nickname: string): Promise<{ nickname: string; locked: boolean }> {
@@ -41,16 +42,6 @@ export interface LeaderboardResult {
   total_plays: number;
   me: { rank: number; score: number } | null;
   vote_bonus_enabled: boolean;
-  wheel: string[];
-}
-
-export interface SpinResult {
-  prize_id: string | null;
-  prize_name: string;
-  code: string;
-  segments: string[];
-  index: number;
-  redeemed: boolean;
 }
 
 export async function api<T>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {

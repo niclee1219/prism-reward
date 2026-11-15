@@ -6,15 +6,15 @@ import { QUESTIONS } from '../game/gateDirector';
 import { buzz } from '../game/haptics';
 import { reducedMotion } from '../game/perf';
 import type { RunResult } from '../game/sim/RunSim';
-import { ApiError, api, type RankInfo, type SpinResult, type SubmitResult } from '../net/api';
+import { ApiError, api, type RankInfo, type SubmitResult } from '../net/api';
 import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
 import { confetti } from './confetti';
 import { mountLeaderboard } from './leaderboard';
-import { renderPrize } from './prize';
-import { Wheel } from './wheel';
+import { renderThanks } from './thanks';
 
-const FALLBACK_SEGMENT = 'Better luck next time + sticker';
+/** Lucky-draw entries are for IRAS staff only. The server checks this again. */
+const IRAS_EMAIL = /^[^\s@]+@iras\.gov\.sg$/i;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -69,8 +69,6 @@ export function showResults(
 
   // Cards remember what already happened, so going back never replays or repeats anything.
   const seen = new Set<string>();
-  let spun: SpinResult | null = null;
-  let emailDone = local.emailGiven;
 
   // --- beat 1: score, rank, confetti -----------------------------------------
   const beatScore = (b: HTMLElement) => {
@@ -294,129 +292,66 @@ export function showResults(
     b.append(strip, pager);
   };
 
-  // --- beat 5: optional email --------------------------------------------------
+  // --- beat 5: lucky draw (IRAS email + optional feedback) ---------------------
   const beatEmail = (b: HTMLElement) => {
-    b.append(el('h2', '', 'WANT IN ON THE PRIZE DRAW?'));
+    b.append(el('div', 'draw-ticket', '☕'));
+    const lead = el('h2', 'draw-lead', 'Stand a chance to win a $10 Starbucks gift card!');
+    lead.append(el('small', '', 'Fill in your IRAS email to enter the lucky draw.'));
     const input = el('input', 'field');
     input.type = 'email';
     input.id = 'email';
-    input.placeholder = 'you@example.com';
+    input.placeholder = 'you@iras.gov.sg';
     input.autocomplete = 'email';
-    const consentLabel = el('label', 'check small');
-    const consent = el('input');
-    consent.type = 'checkbox';
-    consent.id = 'email-consent';
-    consentLabel.append(consent, el('span', '', 'Keep me posted with PRISM updates'));
-    const notice = el(
-      'p',
-      'notice',
-      'Optional: used only for the prize draw and PRISM updates. Deleted after the event unless you opt in to updates.',
-    );
-    const send = el('button', 'btn btn-ghost', 'ENTER THE DRAW');
+    input.autocapitalize = 'none';
+    input.spellcheck = false;
+    const label = el('label', 'field-label', 'Optional: how can PRISM benefit you?');
+    label.htmlFor = 'feedback';
+    const feedback = el('textarea', 'field');
+    feedback.id = 'feedback';
+    feedback.maxLength = 500;
+    feedback.placeholder = "We'd love to explore deploying PRISM and sharing it with more users. Tell us how it could help you.";
+    const notice = el('p', 'notice', 'Only @iras.gov.sg emails. Used only for the lucky draw and to follow up on your feedback.');
+    const send = el('button', 'btn', 'ENTER THE DRAW');
     send.type = 'button';
     send.id = 'email-send';
     const msg = el('div', 'msg');
-    b.append(el('div', 'draw-ticket', '🎟️'), input, consentLabel, notice, send, msg);
+    b.append(lead, input, label, feedback, send, msg, notice);
     next.textContent = 'SKIP ▸';
-    if (emailDone) {
-      input.disabled = consent.disabled = send.disabled = true;
-      input.placeholder = 'Entered';
-      msg.textContent = "You're in the draw!";
-      next.textContent = 'NEXT ▸';
-    }
+    const finish = () => {
+      local.emailGiven = true;
+      buzz('correct');
+      go();
+    };
     send.addEventListener('click', async () => {
       const email = input.value.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      if (!IRAS_EMAIL.test(email)) {
         msg.className = 'msg err';
-        msg.textContent = 'That email looks off. Check it?';
+        msg.textContent = 'Please use your @iras.gov.sg email.';
         return;
       }
       send.disabled = true;
+      msg.className = 'msg';
+      msg.textContent = '';
       try {
-        await api('/email', { body: { device_id: deviceId(), email, consent: consent.checked } });
-        local.emailGiven = true;
-        emailDone = true;
-        buzz('correct');
-        msg.className = 'msg';
-        msg.textContent = "You're in the draw!";
-        next.textContent = 'NEXT ▸';
+        await api('/email', { body: { device_id: deviceId(), email, message: feedback.value.trim() } });
+        finish();
       } catch (e) {
         send.disabled = false;
         msg.className = 'msg err';
-        msg.textContent =
-          e instanceof ApiError && e.code === 'no_player' ? 'Your score is still saving. Try again in a moment.' : "Couldn't save that. Try again.";
+        const code = e instanceof ApiError ? e.code : '';
+        if (code === 'already_entered') finish(); // this device is already in the draw: just carry on
+        else if (code === 'email_taken') msg.textContent = 'That email is already in the draw.';
+        else if (code === 'bad_email') msg.textContent = 'Please use your @iras.gov.sg email.';
+        else if (code === 'no_player' || code === 'unknown_device') msg.textContent = 'Your score is still saving. Try again in a moment.';
+        else msg.textContent = "Couldn't save that. Try again.";
       }
     });
   };
 
-  // --- beat 6: spin wheel finale -----------------------------------------------
-  const showPrize = (b: HTMLElement, r: SpinResult) => {
-    b.innerHTML = '';
-    b.classList.add('prize-reveal');
-    renderPrize(b, { code: r.code, name: r.prize_name, won_at: Date.now(), won: !!r.prize_id, nickname });
-    // Other prizes from earlier runs that the team has not handed over yet.
-    const earlier = local.unredeemed.filter((p) => p.code !== r.code);
-    if (earlier.length) {
-      b.append(el('div', 'old-prizes', `Not collected yet: ${earlier.map((p) => `${p.code} (${p.name})`).join(', ')}`));
-    }
-  };
-
-  const beatSpin = (b: HTMLElement) => {
+  // --- beat 6: thank you -------------------------------------------------------
+  const beatThanks = (b: HTMLElement) => {
     next.textContent = 'PLAY AGAIN';
-    if (spun) return showPrize(b, spun); // already spun this run: show the prize, never a second wheel
-    b.append(el('h2', 'spin-title', 'SPIN TO WIN'));
-    const wheel = new Wheel(server?.wheel?.length ? server.wheel : [FALLBACK_SEGMENT]);
-    const spin = el('button', 'btn btn-spin', 'SPIN!');
-    spin.type = 'button';
-    spin.id = 'spin';
-    spin.disabled = true;
-    const msg = el('div', 'msg', 'Waiting for your score to save...');
-    b.append(wheel.el, spin, msg);
-
-    whenOutcome((o) => {
-      if (!o.ok) {
-        msg.textContent = 'No spin for this run. Play again!';
-        return;
-      }
-      wheel.setSegments(o.result.wheel.length ? o.result.wheel : [FALLBACK_SEGMENT]);
-      msg.textContent = 'Tap SPIN or the wheel';
-      spin.disabled = false;
-      wheel.el.classList.add('ready');
-    });
-
-    const doSpin = async () => {
-      if (spin.disabled) return;
-      spin.disabled = true;
-      back.disabled = next.disabled = true;
-      wheel.el.classList.remove('ready');
-      buzz('boost');
-      msg.className = 'msg';
-      msg.textContent = '';
-      let r: SpinResult;
-      try {
-        r = await api<SpinResult>('/spin', { body: { run_id: runId, device_id: deviceId() } });
-      } catch {
-        spin.disabled = false;
-        back.disabled = next.disabled = false;
-        msg.className = 'msg err';
-        msg.textContent = 'No connection. Tap SPIN to try again.';
-        return;
-      }
-      wheel.setSegments(r.segments);
-      await wheel.spinTo(r.index);
-      spun = r;
-      local.addPrize({ code: r.code, name: r.prize_name, won_at: Date.now(), won: !!r.prize_id, nickname });
-      back.disabled = next.disabled = false;
-      if (!b.isConnected) return;
-      // Straight to the prize screen as soon as the wheel stops.
-      if (r.prize_id) {
-        confetti(root, 180);
-        buzz('win');
-      } else buzz('thump');
-      showPrize(b, r);
-    };
-    spin.addEventListener('click', doSpin);
-    wheel.el.addEventListener('click', doSpin);
+    renderThanks(b, root, { entered: local.emailGiven || !!server?.entered, first: !seen.has('thanks') });
   };
 
   // --- navigation ---------------------------------------------------------------
@@ -428,8 +363,8 @@ export function showResults(
     { id: 'vote', build: beatVote, skip: () => !server || !server.vote_bonus_enabled || server.voted || local.voted },
     { id: 'cite', build: beatCite },
     { id: 'pain', build: beatPain },
-    { id: 'email', build: beatEmail, skip: () => local.emailGiven },
-    { id: 'spin', build: beatSpin },
+    { id: 'email', build: beatEmail, skip: () => local.emailGiven || !!server?.entered },
+    { id: 'thanks', build: beatThanks },
   ];
   // History of the cards actually shown, so BACK returns to exactly what the player saw.
   const history: number[] = [];
@@ -471,13 +406,13 @@ export function showResults(
   next.addEventListener('click', go);
   back.addEventListener('click', goBack);
 
-  // Swipe between cards (not on the pain-point carousel, the wheel or form fields).
+  // Swipe between cards (not on the pain-point carousel or form fields).
   let sx = 0;
   let sy = 0;
   let swipeOk = false;
   root.addEventListener('pointerdown', (e) => {
     const t = e.target as HTMLElement;
-    swipeOk = !t.closest('.strip, .wheel-wrap, input, button, label, a');
+    swipeOk = !t.closest('.strip, input, textarea, button, label, a');
     sx = e.clientX;
     sy = e.clientY;
   });
@@ -486,7 +421,7 @@ export function showResults(
     const dx = e.clientX - sx;
     const dy = e.clientY - sy;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
-    // The last card's NEXT is PLAY AGAIN: a swipe must not start a run by accident.
+    // The last card's NEXT is PLAY AGAIN (back to the home screen): a swipe must not start a run by accident.
     if (dx < 0 && history[history.length - 1] !== beats.length - 1) go();
     else if (dx > 0) goBack();
   });

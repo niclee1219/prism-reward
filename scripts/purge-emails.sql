@@ -1,8 +1,6 @@
--- Post-event purge. Run in the Supabase SQL editor (or psql) after the prize draw.
--- Deletes every email whose owner did not opt in to PRISM updates, as promised on the email screen.
-update players set email = null where email is not null and email_consent = false;
+-- Post-event purge. Run in the Supabase SQL editor (or psql) after the lucky draw has been drawn.
+-- Deletes every lucky-draw entry (IRAS email + feedback text), as promised on the entry card.
+-- Export first from /admin -> Export if you still need the feedback.
+delete from draw_entries;
 
--- To delete ALL emails, including those who opted in to updates, run this instead:
--- update players set email = null, email_consent = false;
-
-select count(*) filter (where email is not null) as emails_remaining from players;
+select count(*) as entries_remaining from draw_entries;

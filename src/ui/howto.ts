@@ -46,7 +46,7 @@ const SLIDES: Slide[] = [
   },
   {
     title: 'PRISM DECODES THE RECIPE',
-    text: 'Vague notes like "cook until it smells right" become exact steps, with sources. Decode all 8 to serve the dish, then spin the wheel for a prize.',
+    text: 'Vague notes like "cook until it smells right" become exact steps, with sources. Decode all 8 to serve the dish, then enter the lucky draw.',
     accent: '#b388ff',
     art: `<div class="ht ht-prism">
       <span class="note">"cook till it smells right"</span>

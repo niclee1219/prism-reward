@@ -10,6 +10,8 @@ import { api, type LeaderboardResult } from '../net/api';
 import { createDemo } from './demo';
 import { diffBoard, entryTarget, TOP_N, type BoardEvent, type Entry } from './diff';
 import { Fx, Sound, type Stinger } from './fx';
+import { planReactions } from './reactions';
+import { REACTION_EMOJI, type ReactionKind, type ReactionsResult } from '../net/reactions';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const stage = $('lb-stage');
@@ -317,6 +319,37 @@ async function poll(): Promise<void> {
   setTimeout(poll, failures > 3 ? Math.min(NET.BOARD_POLL_MS * 2.5, 5000) : NET.BOARD_POLL_MS);
 }
 
+// ---------- reactions from phones: confetti and emoji ----------
+let since = -1; // -1: the first poll only learns the newest id, it does not replay old reactions
+const fakeReactions: { id: number; kind: ReactionKind }[] = []; // ?demo: filled by the keyboard
+let fakeId = 0;
+
+function showReactions(items: { kind: ReactionKind }[], spreadMs: number): void {
+  const plan = planReactions(items);
+  for (let i = 0; i < plan.bursts; i++) {
+    setTimeout(() => {
+      fx.cannons(70);
+      fx.rain(30);
+      fx.boost(0.55);
+    }, i * 250);
+  }
+  // Spread the emoji across the poll interval so they stream up instead of arriving in one clump.
+  plan.emoji.forEach((kind, i) => setTimeout(() => fx.emoji(REACTION_EMOJI[kind]), (i / Math.max(1, plan.emoji.length)) * spreadMs));
+}
+
+async function pollReactions(): Promise<void> {
+  try {
+    const r: ReactionsResult = demo
+      ? { latest: fakeId, items: fakeReactions.splice(0) }
+      : await api<ReactionsResult>(`/reactions?since=${since}`);
+    since = r.latest; // also resets cleanly if the server's ids went backwards
+    if (r.items.length) showReactions(r.items, NET.REACTION_POLL_MS * 0.9);
+  } catch {
+    /* reactions are decoration: never let them disturb the board */
+  }
+  setTimeout(pollReactions, NET.REACTION_POLL_MS);
+}
+
 // ---------- room controls: sound unlock, fullscreen, screen wake ----------
 function showHint(text: string, ms = 3500): void {
   hint.textContent = text;
@@ -341,6 +374,11 @@ addEventListener('keydown', (ev) => {
   } else if (demo && k === ' ') demo.add();
   else if (demo && k === 'k') demo.add(true);
   else if (demo && k === 'r') demo.reset();
+  else if (demo && k === 'c') fakeReactions.push({ id: ++fakeId, kind: 'confetti' });
+  else if (demo && k === 'e') {
+    const kinds: ReactionKind[] = ['heart', 'like', 'fire', 'penguin', 'party'];
+    for (let i = 0; i < 4; i++) fakeReactions.push({ id: ++fakeId, kind: kinds[(Math.random() * kinds.length) | 0] });
+  }
 });
 async function keepAwake(): Promise<void> {
   try {
@@ -351,7 +389,8 @@ async function keepAwake(): Promise<void> {
 }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void keepAwake());
 void keepAwake();
-showHint(demo ? 'DEMO · SPACE adds a player · K crowns a new king · R resets · click for sound' : 'click once to enable sound · F fullscreen', 6000);
+showHint(demo ? 'DEMO · SPACE adds a player · K crowns a new king · C confetti · E emoji · R resets · click for sound' : 'click once to enable sound · F fullscreen', 6000);
 
 renderRows([]);
 void poll();
+void pollReactions();

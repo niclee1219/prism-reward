@@ -38,7 +38,6 @@ export function createDemo(): { fetch: () => Promise<LeaderboardResult>; add: (k
       total_plays: plays,
       me: null,
       vote_bonus_enabled: false,
-      wheel: [],
     }),
   };
 }
