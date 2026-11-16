@@ -59,7 +59,7 @@ export type Arm = 'down' | 'forward' | 'up' | 'scratch' | 'chop' | 'chopDown' | 
  * The beaver chef, standing, feet on (x, y), facing right when dir = 1. About 18 x 30 art pixels.
  * `blink` closes the eye, `bob` lifts the whole body by that many pixels.
  */
-export function chef(p: PixelCanvas, x: number, y: number, dir: number, o: { arm?: Arm; blink?: boolean; bob?: number; mouth?: boolean } = {}): void {
+export function chef(p: Pick<PixelCanvas, 'rect'>, x: number, y: number, dir: number, o: { arm?: Arm; blink?: boolean; bob?: number; mouth?: boolean } = {}): void {
   const b = mirror(p.rect, x, y - (o.bob ?? 0), dir);
   // tail: flat paddle behind, cross-hatched like the forest beavers
   b(-11, -10, 5, 9, P.furDark);
@@ -350,7 +350,7 @@ export function stallWall(p: PixelCanvas, top: number, o: { lamp?: number; lampY
 }
 
 /** The steel counter in front of the stall: its top is at y = top and its ribbed front runs to the bottom. */
-export function counter(p: PixelCanvas, top: number): void {
+export function counter(p: Pick<PixelCanvas, 'rect' | 'w' | 'h'>, top: number): void {
   const { rect, w, h } = p;
   rect(0, top, w, 3, P.steelLight);
   rect(0, top + 3, w, 2, P.steel);
@@ -413,7 +413,7 @@ export function steam(p: PixelCanvas, x: number, y: number, t: number): void {
 }
 
 /** Ah Ma's framed portrait: an older beaver with white hair in a bun and round glasses. 16 x 18. */
-export function portrait(p: PixelCanvas, x: number, y: number): void {
+export function portrait(p: Pick<PixelCanvas, 'rect'>, x: number, y: number): void {
   const { rect } = p;
   rect(x, y, 16, 18, P.woodEdge);
   rect(x + 1, y + 1, 14, 16, P.wood);

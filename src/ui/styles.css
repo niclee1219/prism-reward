@@ -36,7 +36,7 @@ em { font-style: normal; } /* Jersey 15 has no italic; a faked slant smears it *
 body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; inset: 0; user-select: none; -webkit-user-select: none; }
 #stage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: hidden; background: #000; touch-action: none; }
 #game { position: absolute; inset: 0; }
-/* The 3D street is drawn at 1/PIXEL_SIZE resolution; World sizes and centres the canvas, CSS keeps the pixels crisp. */
+/* The pixel street is drawn at 1/PIXEL_SIZE resolution; World sizes and centres the canvas, CSS keeps the pixels crisp. */
 #game canvas { position: absolute; display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
 
 /* ---------- HUD ---------- */
@@ -84,14 +84,16 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
   100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); opacity: 0.2; }
 }
 
-/* Question panel: solid surfaces only, so the words never fight the street behind them. */
-.qpanel { margin-top: 8px; animation: drop 0.22s steps(3); }
-.q-text { margin: 0 9%; padding: 7px 10px 8px; background: #14142b; color: var(--pix-white); border: 3px solid var(--pix-cream); box-shadow: 0 4px 0 var(--pix-ink); font-size: 24px; line-height: 1.02; text-align: center; }
-/* The three cards sit exactly above the three lanes (road = 80% of the width). */
-.q-answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 7px 10% 0; }
+/* Question panel: solid surfaces only, so the words never fight the street behind them. It sits at the bottom of the
+   stage, under the beaver, so the street ahead stays clear: answer cards on top (pointing up at their lanes), the
+   question under them. The order is flipped in CSS so hud.ts and the markup stay as they are. */
+.qpanel { position: absolute; left: 0; right: 0; bottom: calc(var(--sab) + 8px); display: flex; flex-direction: column-reverse; animation: rise-q 0.22s steps(3); }
+.q-text { margin: 9px 9% 0; padding: 7px 10px 8px; background: #14142b; color: var(--pix-white); border: 3px solid var(--pix-cream); box-shadow: 0 4px 0 var(--pix-ink); font-size: 24px; line-height: 1.02; text-align: center; }
+/* The three cards sit exactly under the three lanes (road = 80% of the width). */
+.q-answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 0 10%; }
 .q-card { --lane: var(--lane0); min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 5px 4px 8px; background: var(--pix-cream); color: var(--pix-ink); border: 4px solid var(--lane); box-shadow: 0 0 0 2px var(--pix-ink), inset 0 -4px color-mix(in srgb, var(--lane) 45%, var(--pix-cream)); font-size: 21px; line-height: 0.98; text-align: center; position: relative; overflow-wrap: anywhere; }
-/* A stepped pixel arrow under each card, pointing down at its lane. */
-.q-card::after { content: ''; position: absolute; left: 50%; bottom: -15px; width: 16px; height: 9px; margin-left: -8px; background: var(--lane); clip-path: polygon(0 0, 100% 0, 100% 34%, 75% 34%, 75% 67%, 62% 67%, 62% 100%, 38% 100%, 38% 67%, 25% 67%, 25% 34%, 0 34%); }
+/* A stepped pixel arrow on top of each card, pointing up at its lane. */
+.q-card::after { content: ''; position: absolute; left: 50%; top: -15px; width: 16px; height: 9px; margin-left: -8px; background: var(--lane); clip-path: polygon(0 100%, 100% 100%, 100% 66%, 75% 66%, 75% 33%, 62% 33%, 62% 0, 38% 0, 38% 33%, 25% 33%, 25% 66%, 0 66%); }
 .q-card.lane1 { --lane: var(--lane1); }
 .q-card.lane2 { --lane: var(--lane2); }
 .qpanel.tutorial .q-card { opacity: 0.45; }
@@ -101,7 +103,7 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
 .qpanel.done { transition: opacity 0.3s 0.5s; opacity: 0; }
 
 @keyframes bump { 50% { transform: scale(1.5); } }
-@keyframes drop { from { transform: translateY(-20px); opacity: 0; } }
+@keyframes rise-q { from { transform: translateY(20px); opacity: 0; } }
 @keyframes glow { from { box-shadow: 0 0 0 2px var(--pix-ink), 0 0 0 5px var(--pix-gold); } to { box-shadow: 0 0 0 2px var(--pix-ink), 0 0 0 9px var(--pix-gold); } }
 
 /* ---------- effects over the 3D canvas (World / Fx.ts) ---------- */

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel run sprites (dev)</title>
+    <style>
+      body { margin: 0; background: #1b1b2f; color: #fff6e0; font: 12px/1 ui-monospace, Menlo, monospace; }
+      #wrap { position: relative; display: inline-block; }
+      #gallery { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+      .lbl { position: absolute; white-space: nowrap; padding: 2px 4px; background: #1b1b2f; color: #fff6e0; pointer-events: none; }
+      .lbl.section { color: #ffd166; font-weight: bold; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <!-- Dev only (served by `npx vite`, not part of the build). Query: ?t=<seconds> freezes time, ?serve=<st> picks the
+         serve-scene moment, ?dish=<id> picks the dish. -->
+    <div id="wrap"><canvas id="gallery"></canvas></div>
+    <script type="module" src="/src/game/pixel/devGallery.ts"></script>
+  </body>
+</html>

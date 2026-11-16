@@ -10,6 +10,7 @@
     "test": "vitest run tests/unit",
     "test:backend": "vitest run tests/backend",
     "test:e2e": "node tests/e2e/smoke.mjs",
+    "shot": "node scripts/shot.mjs",
     "backend:local": "tsx scripts/local-backend.ts",
     "load-test": "tsx scripts/load-test.ts"
   },

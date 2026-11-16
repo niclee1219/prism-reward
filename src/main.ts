@@ -5,7 +5,7 @@ import { DISHES, dishById, isDishId, type DishId } from './content/dishes';
 import { suggestNickname } from './content/nicknames';
 import { attachInput } from './game/input';
 import { RunSim, type RunResult } from './game/sim/RunSim';
-import { World } from './game/three/World';
+import { World } from './game/pixel/World';
 import { openLearn, type LearnHandle } from './learn/learn';
 import { ApiError, claimName } from './net/api';
 import { deviceId, local, uuid } from './net/device';
@@ -41,6 +41,10 @@ const world = new World(stage, $('game'), sim, {
   onPlating: (x, y) => hud.plating(x, y),
 });
 (window as unknown as { __prism?: RunSim }).__prism = sim;
+
+// Dev only: /?demo=1 starts a run straight away with a fixed name and no network (no name claim, no Learn, no
+// controls slides, no score upload), so screenshot scripts can drive window.__prism without a backend.
+const DEMO = import.meta.env.DEV && new URLSearchParams(location.search).has('demo');
 
 const startScreen = $('screen-start');
 const resultsScreen = $('screen-results');
@@ -163,7 +167,7 @@ function showLearn(): void {
     },
   });
 }
-const firstVisit = !local.seenLearn;
+const firstVisit = !local.seenLearn && !DEMO;
 if (firstVisit) showLearn();
 // The first status check decides: if staff have closed the site, a first visit gets only the closed screen, so the
 // Learn that opened while the check was in flight goes away untouched (the flag stays unset). Later closings let
@@ -182,7 +186,7 @@ async function play(): Promise<void> {
   if (starting) return; // a double tap on PLAY must not start two countdowns
   if (!siteOpen) return syncClosed();
   starting = true;
-  let nickname = local.locked;
+  let nickname = DEMO ? 'DEMO' : local.locked;
   if (!nickname) {
     const typed = typedName();
     if (!typed) {
@@ -210,7 +214,7 @@ async function play(): Promise<void> {
   local.nickname = nickname;
   nickInput.blur();
   // The controls slides show once, on the first PLAY tap; closing them carries straight on into the run.
-  if (!local.seenHowto) await new Promise<void>((done) => showHowto($('screen-howto'), { onClose: done, playing: true }));
+  if (!local.seenHowto && !DEMO) await new Promise<void>((done) => showHowto($('screen-howto'), { onClose: done, playing: true }));
   // The start screen whooshes away instead of blinking out.
   if (!startScreen.hidden) {
     startScreen.classList.add('leaving');
@@ -244,7 +248,7 @@ function finish(result: RunResult, nickname: string): void {
   renderDone();
   const runId = uuid();
   // Queue first, so the run is safe even if the tab dies during the results screens.
-  enqueue({
+  if (!DEMO) enqueue({
     run_id: runId,
     nickname,
     score: result.score,
@@ -262,3 +266,4 @@ $('open-board').addEventListener('click', () => showLeaderboard($('screen-board'
 $('open-howto').addEventListener('click', () => showHowto($('screen-howto')));
 $('open-learn').addEventListener('click', () => showLearn());
 void flush(); // send anything left over from an earlier visit
+if (DEMO) void play();
