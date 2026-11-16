@@ -186,7 +186,7 @@
 .learn-recap.shown .mini-stamp { opacity: 1; animation: mini-in 0.3s calc(var(--i) * 0.25s) steps(3) backwards; }
 @keyframes mini-in { from { opacity: 0; transform: scale(2); } }
 
-/* Coming next: three signposts along the path */
+/* Potential explorations: three signposts along the path */
 .learn-signs { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; padding-bottom: 6px; }
 .learn-sign { position: relative; width: 76%; max-width: 270px; font-size: 12px; padding: 0.95em 0.5em 0.85em; cursor: pointer; }
 .learn-sign:nth-child(1) { align-self: flex-start; margin-left: 3%; }

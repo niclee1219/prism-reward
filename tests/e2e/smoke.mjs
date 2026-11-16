@@ -170,7 +170,7 @@ try {
   assert.equal(await page.locator('.pain').count(), 4);
   await page.click('#next');
   assert.equal(await beat(), 'email');
-  assert.match(await page.textContent('#screen-results'), /win a \$10 Starbucks gift card/);
+  assert.match(await page.textContent('#screen-results'), /win a Starbucks gift card/);
   assert.match(await page.textContent('.notice'), /Only @iras\.gov\.sg emails/);
   // The big /leaderboard screen is already open, so it will see the reactions sent below.
   const lb = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -339,7 +339,7 @@ try {
   });
   await winner.waitForFunction(() => !document.getElementById('screen-results').hidden, null, { timeout: 120000 });
   assert.match(await winner.textContent('#screen-results h2'), /DISH SERVED/);
-  assert.match(await winner.textContent('#screen-results'), /Ah Ma's Laksa/);
+  assert.match(await winner.textContent('#screen-results'), /Laksa/);
   assert.equal((await winner.evaluate(() => window.__prism.debugState())).recovered, 8);
   await winner.click('#next'); // leaderboard card
   await winner.click('#next'); // recipe card
@@ -354,7 +354,7 @@ try {
   await fresh.goto(`${WEB}/`);
   await fresh.waitForSelector('#screen-learn:not([hidden])');
   assert.equal(await fresh.getAttribute('#screen-learn', 'data-scene'), 'problem', 'Learn opens on its first scene');
-  assert.match(await fresh.textContent('.learn-line'), /Ah Ma's notes/);
+  assert.match(await fresh.textContent('.learn-line'), /vague notes/);
   await fresh.click('.learn-next');
   await fresh.waitForTimeout(400);
   await fresh.click('.learn-next');

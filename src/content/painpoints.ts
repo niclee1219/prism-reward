@@ -1,7 +1,7 @@
 export interface PainPoint {
   icon: string;
   title: string;
-  /** The same problem in Ah Ma's kitchen, to bridge the story to the code pitch. */
+  /** The same problem in the stall's kitchen, to bridge the story to the code pitch. */
   kitchen: string;
   pain: string;
   fix: string;
@@ -11,7 +11,7 @@ export const PAIN_POINTS: PainPoint[] = [
   {
     icon: '🏃',
     title: 'Someone leaves',
-    kitchen: "Like Ah Ma's recipe, gone with her.",
+    kitchen: 'Like taking over a recipe nobody explained.',
     pain: 'You inherit their system. The knowledge left with them.',
     fix: 'Ask PRISM how it works and get answers that point to the exact code.',
   },

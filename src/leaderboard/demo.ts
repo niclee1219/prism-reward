@@ -4,7 +4,7 @@
 import { suggestNickname } from '../content/nicknames';
 import type { LeaderboardResult, RecentRun } from '../net/api';
 
-const DISHES = ['chicken-rice', 'char-kway-teow', 'laksa'];
+const DISHES = ['chicken-rice', 'nasi-lemak', 'laksa'];
 
 interface Player {
   key: string;

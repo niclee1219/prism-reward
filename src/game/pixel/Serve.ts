@@ -1,7 +1,7 @@
 // The serve cutscene. Before SERVE_T.CUT the World draws the top-down dash up the street; from CUT this scene
-// draws the whole frame: a side view of Ah Ma's stall, the same place as in Learn (tiled wall, awning, lamp, her
-// portrait, the menu board, the steel counter and the chef beaver), with a hawker table on the right where Ah Ma
-// and a customer wait. The chef holds an empty plate, the ingredients fly into it, he lifts the finished dish
+// draws the whole frame: a side view of the stall, the same place as in Learn (tiled wall, awning, lamp, the
+// framed photo, the menu board, the steel counter and the chef beaver), with a hawker table on the right where a
+// regular (a beaver) and a customer wait. The chef holds an empty plate, the ingredients fly into it, he lifts the finished dish
 // overhead, throws it in an arc and it lands on the table at LAND; then everyone cheers.
 //
 // Layout is worked out from the view on every frame (into one reused object), anchored to the floor line so the
@@ -31,11 +31,8 @@ const HAIR_LIGHT = '#4a4a58';
 const PANTS = '#3a4a6b';
 const SHIRT2 = '#52b788';
 const SHIRT2_SHADE = '#2d8a5f';
-const AMA_HAIR = '#e0e0e0';
-const AMA_HAIR_LIGHT = '#f0f0f0';
-const AMA_BLOUSE = '#c0392b';
-const AMA_BLOUSE_SHADE = '#922b20';
-const GLASS = '#cfe9ff';
+const CAP = '#4f86d6';
+const CAP_SHADE = '#2f5fa8';
 const STOOL = '#e63946';
 const STOOL_SHADE = '#a8262f';
 const TABLE_TOP = '#f2efe6';
@@ -47,6 +44,7 @@ const PLATE_UNDER = '#d0d8e0';
 const RICE = '#fff5d6';
 const NOODLE = '#5a3a1f';
 const CHIVE = '#52e08a';
+const LEAF = '#2d8a5f';
 const SOUP_BOWL = '#f2efe6';
 const SIGN_BG = '#a8262f';
 
@@ -54,14 +52,15 @@ const SIGN_BG = '#a8262f';
 const WALL_OPT = { lamp: 0.72, lampY: 0 };
 const CHEF_OPT: { arm: Arm; mouth: boolean; bob: number; blink: boolean } = { arm: 'forward', mouth: false, bob: 0, blink: false };
 const CUST_OPT = { cheer: false, bob: 0, lookUp: false, reach: false };
-const AMA_OPT = { cheer: false, bob: 0, lookUp: false };
+const REG_OPT = { cheer: false, bob: 0, lookUp: false };
 
 // A 3 x 5 font for the stall sign (Learn's word() has only the letters its scenes need).
-const SIGN_TEXT = 'AH MA';
+const SIGN_TEXT = 'MAKAN';
 const GLYPH: Record<string, string> = {
   A: '010101111101101',
-  H: '101101111101101',
+  K: '101101110101101',
   M: '101111111101101',
+  N: '110101101101101',
 };
 
 /** A box helper mirrored around x when dir = -1, like Learn's sprites, but with no closure per call. */
@@ -95,9 +94,9 @@ interface Layout {
   tableX: number;
   tableTop: number;
   seatY: number;
-  /** Customer on the near side of the table (faces right), Ah Ma on the far side (faces left). */
+  /** Customer on the near side of the table (faces right), the regular on the far side (faces left). */
   custX: number;
-  amaX: number;
+  regX: number;
   /** Where the plate's top row sits: held low, raised overhead, on the table. */
   lowX: number;
   lowY: number;
@@ -118,7 +117,7 @@ function layout(v: View, o: Layout): Layout {
   o.tableTop = o.floor - 15;
   o.seatY = o.floor - 9;
   o.custX = o.tableX - 17;
-  o.amaX = o.tableX + 17;
+  o.regX = o.tableX + 17;
   o.lowX = o.chefX + 13;
   o.lowY = o.feet - 19;
   o.upX = o.chefX + 5;
@@ -196,7 +195,7 @@ export class ServeScene {
     s.h = fullH;
     this.counterThings(rect, L, f.time, still || f.lowFx);
 
-    // --- the table, Ah Ma and the customer ---
+    // --- the table, the regular and the customer ---
     const flying = st >= T.THROW && st < T.LAND;
     this.table(rect, art, L);
     const cheerA = party && (still || frame8 % 4 < 2);
@@ -206,14 +205,14 @@ export class ServeScene {
     CUST_OPT.lookUp = flying;
     CUST_OPT.reach = !party && !flying;
     person(rect, L.custX, L.seatY, L.floor, 1, CUST_OPT);
-    AMA_OPT.cheer = cheerB;
-    AMA_OPT.bob = party && !still && cheerB ? 1 : 0;
-    AMA_OPT.lookUp = flying || (st >= T.RAISE && !party);
-    ahMa(rect, L.amaX, L.seatY, L.floor, -1, AMA_OPT);
+    REG_OPT.cheer = cheerB;
+    REG_OPT.bob = party && !still && cheerB ? 1 : 0;
+    REG_OPT.lookUp = flying || (st >= T.RAISE && !party);
+    regular(rect, L.regX, L.seatY, L.floor, -1, REG_OPT);
     if (party && !still && !f.lowFx) {
-      // A little heart rises from Ah Ma, in steps.
+      // A little heart rises from the regular, in steps.
       const k = (frame8 % 12) / 12;
-      if (k < 0.75) heart(pc, L.amaX - 6, Math.round(L.seatY - 30 - k * 10));
+      if (k < 0.75) heart(pc, L.regX - 6, Math.round(L.seatY - 30 - k * 10));
     }
 
     // --- the dish ---
@@ -290,7 +289,7 @@ export class ServeScene {
     for (let x = 4; x < v.w; x += 14) rect(x, L.floor + 1, 1, v.h - L.floor - 1, FLOOR_LINE);
   }
 
-  /** The stall front: two wooden posts, a striped awning over the counter and the red "AH MA" sign on top. */
+  /** The stall front: two wooden posts, a striped awning over the counter and the red "MAKAN" sign on top. */
   private stall(rect: Rect, L: Layout): void {
     const w = L.counterW;
     const top = L.feet - 50;
@@ -349,7 +348,7 @@ export class ServeScene {
     art.ellipse(x, L.floor + 1, 15, 1.5, FLOOR_SHADOW);
     // stools
     stool(rect, L.custX, L.seatY, L.floor);
-    stool(rect, L.amaX, L.seatY, L.floor);
+    stool(rect, L.regX, L.seatY, L.floor);
     // pedestal and foot
     rect(x - 2, y + 3, 4, L.floor - y - 4, P.ink);
     rect(x - 1, y + 3, 2, L.floor - y - 4, P.steelDark);
@@ -435,6 +434,21 @@ function plate(rect: Rect, x: number, y: number, d: Dish | null, food: string, s
     rect(x - 2, y - 4, 2, 1, P.white);
     rect(x + 4, y - 2, 1, 1, CHIVE);
     rect(x - 4, y - 1, 1, 1, CHIVE);
+  } else if (d.id === 'nasi-lemak') {
+    // a banana leaf, a dome of coconut rice, a dollop of red sambal, half an egg and a cucumber slice
+    rect(x - 8, y - 1, 17, 1, LEAF);
+    rect(x - 4, y - 5, 8, 4, P.ink);
+    rect(x - 3, y - 6, 6, 1, P.ink);
+    rect(x - 3, y - 4, 6, 3, RICE);
+    rect(x - 2, y - 5, 4, 1, RICE);
+    rect(x - 2, y - 5, 2, 1, P.white);
+    rect(x + 1, y - 3, 3, 2, food);
+    rect(x + 2, y - 4, 1, 1, food);
+    rect(x + 1, y - 2, 3, 1, shade);
+    rect(x - 7, y - 3, 3, 2, P.white);
+    rect(x - 6, y - 3, 1, 1, P.gold);
+    rect(x + 5, y - 2, 2, 1, CHIVE);
+    rect(x + 6, y - 2, 1, 1, P.white);
   } else {
     // a heap of noodles in the dish colour, dark strands and green chives
     rect(x - 6, y - 4, 12, 4, P.ink);
@@ -497,12 +511,12 @@ function person(rect: Rect, x: number, seatY: number, floor: number, dir: number
 }
 
 /**
- * Ah Ma, seated: the chef's grandmother, a beaver in her portrait's colours (white bun, round glasses, red blouse).
- * Faces right when dir = 1; (x, seatY) is the middle of the stool top.
+ * A regular at the table, seated: a beaver in a blue cap and a green shirt. Faces right when dir = 1; (x, seatY) is
+ * the middle of the stool top.
  */
-function ahMa(rect: Rect, x: number, seatY: number, floor: number, dir: number, o: { cheer: boolean; bob: number; lookUp: boolean }): void {
+function regular(rect: Rect, x: number, seatY: number, floor: number, dir: number, o: { cheer: boolean; bob: number; lookUp: boolean }): void {
   at(rect, x, seatY - o.bob, dir);
-  // tail flat on the stool behind her, cross-hatched like the chef's
+  // tail flat on the stool behind, cross-hatched like the chef's
   b(-10, -3, 7, 3, P.furDark);
   b(-9, -2, 1, 1, P.fur);
   b(-7, -3, 1, 1, P.fur);
@@ -511,10 +525,9 @@ function ahMa(rect: Rect, x: number, seatY: number, floor: number, dir: number, 
   b(-2, -4, 8, 4, P.fur);
   b(4, 0, 3, floor - seatY - 2 + o.bob, P.furDark);
   b(4, floor - seatY - 2 + o.bob, 5, 2, P.furDark);
-  // body in the red blouse
-  b(-4, -14, 9, 11, AMA_BLOUSE);
-  b(-4, -14, 1, 11, AMA_BLOUSE_SHADE);
-  b(1, -13, 4, 1, P.apron); // collar
+  // body in a green shirt
+  b(-4, -14, 9, 11, SHIRT2);
+  b(-4, -14, 1, 11, SHIRT2_SHADE);
   if (o.cheer) {
     b(2, -29, 3, 17, P.furLight);
     b(2, -31, 3, 2, P.furDark);
@@ -527,16 +540,13 @@ function ahMa(rect: Rect, x: number, seatY: number, floor: number, dir: number, 
   b(6, -16, 1, 2, P.tooth);
   b(7, -16, 1, 2, P.tooth);
   b(1, -17, 2, 1, P.pink);
-  // white hair in a bun
-  b(-3, -25, 8, 3, AMA_HAIR);
-  b(-3, -22, 2, 4, AMA_HAIR);
-  b(-6, -27, 4, 4, AMA_HAIR_LIGHT);
-  b(-5, -27, 2, 1, P.white);
-  // round glasses
-  b(2, -22, 3, 3, P.ink);
-  b(3, o.lookUp ? -22 : -21, 1, 1, GLASS);
-  b(5, -21, 1, 1, P.ink);
-  // arms: the cheering arm rises behind her head, so only the paw shows above the bun
+  b(3, o.lookUp ? -22 : -21, 1, 2, P.ink); // eye
+  // cap with a peak facing forward
+  b(-3, -26, 8, 3, CAP);
+  b(-3, -24, 8, 1, CAP_SHADE);
+  b(5, -24, 4, 1, CAP_SHADE);
+  b(0, -26, 2, 1, P.white);
+  // arms: the cheering arm rises behind the head
   if (!o.cheer) {
     b(1, -12, 3, 7, P.furLight);
     b(2, -6, 4, 2, P.furDark);

@@ -20,8 +20,8 @@ export const LIMITS = {
   NICKNAME_MAX: 16,
 };
 
-/** Must match the check constraint in migration 0004 and src/content/dishes.ts. */
-export const DISH_IDS: unknown[] = ['chicken-rice', 'char-kway-teow', 'laksa'];
+/** Must match the check constraint in migration 0009 and src/content/dishes.ts. */
+export const DISH_IDS: unknown[] = ['chicken-rice', 'nasi-lemak', 'laksa'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Lucky-draw entries: IRAS addresses only (exact domain, any case, no subdomains). */
 const EMAIL = /^[^\s@]+@iras\.gov\.sg$/i;

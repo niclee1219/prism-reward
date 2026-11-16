@@ -193,11 +193,11 @@ function pileSpot(i: number, x: number, top: number) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 1. The problem: Ah Ma's stall, her messy recipe book
+// 1. The problem: the stall you took over, and its messy recipe book
 
 const problem: SceneBuilder = (env) => {
   const s = stage(env);
-  const plate = s.tag('AH MA', 'learn-tag--plate');
+  const plate = s.tag('SINCE 1998', 'learn-tag--plate');
   env.stampAt(0.4);
   s.px.run((t, f) => {
     const { px } = s;
@@ -759,7 +759,7 @@ const docs: SceneBuilder = (env, wasDone) => {
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 9. Why PRISM: the night skyline; a fence round Lau Pa Sat keeps the code in, an outside AI tool cannot read it
+// 9. Why PRISM: the night skyline; a fence round Lau Pa Sat keeps the code in
 
 const why: SceneBuilder = (env) => {
   const canvas = el('canvas', 'learn-canvas pix-crisp');
@@ -807,27 +807,6 @@ const why: SceneBuilder = (env) => {
       rect(gx - 2, fy - 8, 5, 3, P.gold);
       rect(gx - 1, fy - 7, 3, 2, '#2a1608');
       rect(gx, fy - 3, 1, 2, '#2a1608');
-      // a little robot outside the fence, puzzling over a page of code
-      const rx = right + 6 <= px.w - 10 ? right + 6 : px.w - 12;
-      const ry = right + 6 <= px.w - 10 ? gy + 2 : fy + 14;
-      const bob = reducedMotion ? 0 : f % 12 < 6 ? 0 : 1;
-      rect(rx, ry - 12 + bob, 8, 7, '#9aa6b2');
-      rect(rx + 1, ry - 11 + bob, 6, 3, '#2b2b33');
-      rect(rx + 2, ry - 10 + bob, 1, 1, '#52e08a');
-      rect(rx + 5, ry - 10 + bob, 1, 1, '#52e08a');
-      rect(rx + 3, ry - 14 + bob, 2, 2, '#76828f');
-      rect(rx + 1, ry - 5, 6, 4, '#76828f');
-      rect(rx + 1, ry - 1, 2, 2, '#55555f');
-      rect(rx + 5, ry - 1, 2, 2, '#55555f');
-      rect(rx - 3, ry - 6, 4, 5, P.paper);
-      rect(rx - 2, ry - 5, 2, 1, '#4f86d6');
-      if (reducedMotion || f % 20 < 14) {
-        rect(rx + 4, ry - 21 + bob, 6, 6, P.white);
-        rect(rx + 6, ry - 20 + bob, 2, 1, P.ink);
-        rect(rx + 7, ry - 19 + bob, 1, 1, P.ink);
-        rect(rx + 6, ry - 18 + bob, 1, 1, P.ink);
-        rect(rx + 6, ry - 16 + bob, 1, 1, P.ink);
-      }
       sign.style.left = `${((gx / px.w) * 100).toFixed(2)}%`;
       sign.style.top = `${(((fy + 3) / px.h) * 100).toFixed(2)}%`;
     },
@@ -841,7 +820,7 @@ const why: SceneBuilder = (env) => {
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 10. Coming next: three signposts along the forest path; tap each to read it
+// 10. Potential explorations: three signposts along the forest path; tap each to read it
 
 const next: SceneBuilder = (env, wasDone) => {
   const canvas = el('canvas', 'learn-canvas pix-crisp');

@@ -483,16 +483,167 @@ textarea.field { min-height: 84px; resize: none; font: 16px/1.35 var(--sans); }
 #screen-results .beat.thanks > :first-child, #screen-results .beat.thanks > :last-child { margin: 0; }
 /* The forest fills the whole results screen, behind the card, the dots and the navigation. */
 #screen-results > canvas.forest-backdrop { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
-#screen-results.thanks-on { background: #6fc8f2; }
 .thanks-sign { width: min(88%, 340px); margin-top: 14px; font-size: 24px; animation: rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; }
 .thanks-sign small { font-size: 18px; line-height: 1.2; }
-/* Dots and buttons sit on bright scenery: give them solid pixel surfaces so they stay legible. */
-#screen-results.thanks-on .progress { padding: 6px 10px; background: var(--pix-ink); border: 2px solid var(--pix-cream); }
-#screen-results.thanks-on .step-count { color: var(--pix-cream); }
-#screen-results.thanks-on .dots i { border-radius: 0; background: #5b4a3a; }
-#screen-results.thanks-on .nav-row .btn { border-radius: 0; font-family: var(--pix-font-display); font-size: 13px; color: var(--pix-ink); background: var(--pix-gold); border: 3px solid var(--pix-ink); box-shadow: inset 0 -4px var(--pix-gold-shade), 0 4px 0 var(--pix-ink); }
-#screen-results.thanks-on .nav-row .btn-back { background: var(--pix-cream); box-shadow: inset 0 -4px #e6d3a6, 0 4px 0 var(--pix-ink); font-size: 18px; }
-#screen-results.thanks-on .nav-row .btn:active { transform: translateY(4px); box-shadow: none; }
+
+/* ---------- results in Learn's daylight look (#screen-results.day, set for the whole flow by results.ts) ----------
+   The forest runs behind every card; panels are cream with ink outlines; headings are wooden signs on ropes; the
+   score card's headline is a red stamp that slams on. Text that sits straight on the scenery gets a cream bubble. */
+#screen-results.day { background: #6fc8f2; color: var(--pix-ink); }
+#screen-results.day .pix-panel { background: var(--pix-cream); color: var(--pix-ink); border: 3px solid var(--pix-ink); }
+#screen-results > .fx-layer { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+#screen-results.jolt .beat { animation: jolt 0.3s steps(4); }
+@keyframes jolt { 25% { transform: translate(-4px, 3px); } 50% { transform: translate(4px, -2px); } 75% { transform: translate(-2px, 1px); } }
+
+/* dots and buttons sit on bright scenery: solid pixel surfaces keep them legible */
+#screen-results.day .progress { padding: 6px 10px; background: var(--pix-ink); border: 2px solid var(--pix-cream); }
+#screen-results.day .step-count { color: var(--pix-cream); }
+#screen-results.day .dots i { border-radius: 0; background: #5b4a3a; }
+#screen-results.day .nav-row .btn { border-radius: 0; font-family: var(--pix-font-display); font-size: 13px; color: var(--pix-ink); background: var(--pix-gold); border: 3px solid var(--pix-ink); box-shadow: inset 0 -4px var(--pix-gold-shade), 0 4px 0 var(--pix-ink); }
+#screen-results.day .nav-row .btn-back { background: var(--pix-cream); box-shadow: inset 0 -4px #e6d3a6, 0 4px 0 var(--pix-ink); font-size: 18px; }
+#screen-results.day .nav-row .btn:active { transform: translateY(4px); box-shadow: none; }
+#screen-results.day #next.nudge { animation: pulse 1.2s steps(2) infinite; }
+
+/* cards swing in like a hanging sign rather than sliding */
+#screen-results.day .beat.in-fwd { animation: card-swing-fwd 0.45s steps(5); transform-origin: 50% 0; }
+#screen-results.day .beat.in-back { animation: card-swing-back 0.45s steps(5); transform-origin: 50% 0; }
+@keyframes card-swing-fwd { from { transform: translateX(60px) rotate(5deg); opacity: 0; } 70% { transform: rotate(-1.5deg); opacity: 1; } }
+@keyframes card-swing-back { from { transform: translateX(-60px) rotate(-5deg); opacity: 0; } 70% { transform: rotate(1.5deg); opacity: 1; } }
+
+/* headings: a wooden sign hanging from two ropes, dropping in with a little bounce */
+#screen-results .beat > h2.card-sign {
+  position: relative; margin-top: 18px; padding: 0.85em 1em 0.7em; max-width: 92%; font-size: 13px; line-height: 1.4;
+  color: var(--pix-wood-text); text-shadow: 2px 2px var(--pix-wood-edge); animation: sign-drop 0.6s steps(6) backwards;
+}
+#screen-results .beat > h2.card-sign::before, #screen-results .beat > h2.card-sign::after {
+  content: ''; position: absolute; bottom: 100%; width: 3px; height: 18px; margin-bottom: 4px; background: var(--pix-wood-edge);
+}
+#screen-results .beat > h2.card-sign::before { left: 18%; }
+#screen-results .beat > h2.card-sign::after { right: 18%; }
+@keyframes sign-drop { 0% { transform: translateY(-60px); opacity: 0; } 50% { transform: translateY(6px); opacity: 1; } 70% { transform: translateY(-3px) rotate(-2deg); } 85% { transform: rotate(1deg); } }
+
+/* the score card's headline: Learn's red stamp, slammed on */
+#screen-results .beat > h2.headline.stamp {
+  margin-top: 6px; padding: 10px 16px 8px; font: 400 21px/1.15 var(--pix-font-display); color: #d62839; text-shadow: none;
+  background: rgba(255, 245, 214, 0.94); border: 4px solid currentColor; transform: rotate(-6deg);
+  box-shadow: inset 0 0 0 3px rgba(255, 245, 214, 0.94), inset 0 0 0 5px currentColor, 4px 5px 0 rgba(42, 22, 8, 0.35);
+  animation: res-slam 0.45s steps(5) backwards;
+}
+#screen-results .beat > h2.headline.stamp.timeup { color: #1f6fb2; }
+#screen-results .beat > h2.headline.stamp.crash { color: #7a3b1d; }
+#screen-results .beat > h2.headline.stamp.still { animation: none; }
+@keyframes res-slam { 0% { transform: rotate(-6deg) scale(2.6); opacity: 0; } 60% { transform: rotate(-6deg) scale(0.92); opacity: 1; } }
+
+/* commentary bubbles */
+#screen-results .bubble {
+  position: relative; max-width: 330px; margin: 0; padding: 7px 12px 8px; font-size: 20px; line-height: 1.08;
+  box-shadow: 3px 3px 0 var(--pix-ink);
+}
+#screen-results .bubble::before {
+  content: ''; position: absolute; left: 22px; bottom: 100%; width: 12px; height: 8px; background: var(--pix-ink);
+  clip-path: polygon(0 100%, 100% 100%, 30% 0);
+}
+#screen-results .saving { padding: 6px 12px; color: var(--pix-ink); background: var(--pix-cream); border: 3px solid var(--pix-ink); }
+#screen-results .msg:not(:empty) { padding: 4px 10px 5px; color: #1d7a43; background: var(--pix-cream); border: 2px solid var(--pix-ink); }
+#screen-results .msg.err:not(:empty) { color: #b3261e; }
+
+/* score card */
+#screen-results .plate { box-shadow: 0 4px 0 var(--pix-ink); }
+#screen-results .plate .plate-emoji { display: inline-block; animation: wiggle 1.6s steps(2) infinite; }
+#screen-results .plate.served { position: relative; background: var(--pix-gold); box-shadow: inset 0 -4px var(--pix-gold-shade), 0 4px 0 var(--pix-ink), 0 0 0 4px rgba(255, 245, 214, 0.7); }
+#screen-results .plate.served::before, #screen-results .plate.served::after {
+  content: '✦'; position: absolute; font-size: 16px; color: var(--pix-white); text-shadow: 1px 1px var(--pix-ink); animation: twinkle 0.9s steps(2) infinite;
+}
+#screen-results .plate.served::before { left: -14px; top: -10px; }
+#screen-results .plate.served::after { right: -14px; bottom: -8px; animation-delay: 0.45s; }
+@keyframes wiggle { 50% { transform: rotate(-12deg) translateY(-2px); } }
+@keyframes twinkle { 50% { opacity: 0.15; transform: scale(0.6); } }
+#screen-results .ticket { border-width: 3px; box-shadow: inset 0 5px var(--pix-gold), 4px 5px 0 var(--pix-ink); animation: pop-in 0.5s 0.15s steps(5) backwards; }
+#screen-results .ticket-label { color: var(--pix-ink); opacity: 0.7; }
+#screen-results .pips i { background: #efe2bf; border-color: var(--pix-ink); }
+#screen-results .pips i.on { background: var(--pix-green); box-shadow: inset 0 -3px #2c8a55; animation: pip-pop 0.3s calc(0.5s + var(--i) * 0.09s) steps(3) backwards; }
+@keyframes pip-pop { from { transform: scale(0) translateY(6px); } 60% { transform: scale(1.4); } }
+#screen-results .stats .stat-chip { border-color: var(--pix-ink); animation: pop-in 0.35s calc(0.9s + var(--i, 0) * 0.1s) steps(4) backwards; }
+@keyframes pop-in { from { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } }
+#screen-results .rank-box { border-color: var(--pix-ink); }
+#screen-results .rank-box .rank { color: #c2410c; }
+#screen-results .rank-box .medal { animation: medal-in 0.6s steps(6) backwards, medal-bob 1.6s 0.6s steps(2) infinite; }
+@keyframes medal-bob { 50% { transform: translateY(-3px) rotate(-3deg); } }
+#screen-results .beatline { color: var(--pix-ink); }
+
+/* leaderboard card */
+#screen-results .lb-body { color: var(--pix-ink); background: var(--pix-cream); border-color: var(--pix-ink); box-shadow: 4px 5px 0 var(--pix-ink); }
+#screen-results .lb-row { border-bottom-color: rgba(42, 22, 8, 0.2); }
+#screen-results .lb-row.top1 { background: rgba(255, 209, 102, 0.45); }
+#screen-results .lb-row.you { background: #c9f2d7; box-shadow: inset 4px 0 #2c8a55, 0 0 0 2px #2c8a55; animation: lb-in 0.4s var(--d, 0ms) steps(4) backwards, you-glow 1.2s 0.6s steps(2) infinite; }
+@keyframes you-glow { 50% { background: #a8e8bd; } }
+#screen-results .lb-rank { color: #c2410c; }
+#screen-results .lb-row.top2 .lb-rank { color: #6b7a8f; }
+#screen-results .lb-row.top3 .lb-rank { color: #a0522d; }
+#screen-results .lb-score { color: var(--pix-ink); }
+#screen-results .lb-row.skeleton { background: rgba(42, 22, 8, 0.08); }
+
+/* recipe card: a green check sticker slaps onto each decoded row */
+#screen-results .decode-bar { background: #efe2bf; border-color: var(--pix-ink); box-shadow: 3px 3px 0 var(--pix-ink); }
+#screen-results .recipe-list li { position: relative; background: var(--pix-cream); border-color: var(--pix-ink); box-shadow: inset 5px 0 #2c8a55, 2px 2px 0 rgba(42, 22, 8, 0.3); }
+#screen-results .recipe-list li.got { padding-right: 32px; }
+#screen-results .recipe-list li.locked { background: #efe2bf; box-shadow: inset 5px 0 rgba(42, 22, 8, 0.25); opacity: 0.8; }
+#screen-results .r-note { color: var(--pix-ink); }
+#screen-results .r-decoded { color: #1d7a43; }
+#screen-results .recipe-list li.locked .r-decoded { color: var(--pix-ink); opacity: 0.7; }
+#screen-results .r-check {
+  position: absolute; right: 5px; top: 5px; display: grid; place-items: center; width: 22px; height: 22px; font: 400 14px/1 var(--sans);
+  color: var(--pix-white); background: #2c8a55; border: 2px solid var(--pix-ink); transform: rotate(10deg);
+  animation: check-slap 0.35s calc(var(--i) * 70ms + 0.6s) steps(4) backwards;
+}
+@keyframes check-slap { from { transform: rotate(10deg) scale(2.4); opacity: 0; } 70% { transform: rotate(10deg) scale(0.9); opacity: 1; } }
+
+/* vote card: a pointing paw bobs at the switch until it is on */
+#screen-results .vote-card { position: relative; border-color: var(--pix-ink); box-shadow: 4px 5px 0 var(--pix-ink); }
+#screen-results .boosted .vote-card { background: #c9f2d7; border-color: #2c8a55; }
+#screen-results input.switch { background: #efe2bf; border-color: var(--pix-ink); }
+#screen-results input.switch::after { background: var(--pix-white); box-shadow: inset 0 -3px #c9b98f, 0 0 0 2px var(--pix-ink); }
+#screen-results input.switch:checked { background: var(--pix-green); }
+#screen-results .vote-hand {
+  position: absolute; right: 14px; top: 100%; font-size: 30px; font-style: normal; line-height: 1; pointer-events: none;
+  filter: drop-shadow(2px 2px 0 var(--pix-ink)); animation: hand-bob 0.8s steps(2) infinite;
+}
+#screen-results .boosted .vote-hand { display: none; }
+@keyframes hand-bob { 50% { transform: translateY(-8px); } }
+#screen-results .boost-preview { margin-top: 14px; padding: 10px 14px 9px; }
+#screen-results .boost-preview .arrow { color: #1d7a43; }
+#screen-results .boosted .boost-preview .to { color: #1d7a43; text-shadow: none; animation: pop-in 0.4s steps(4); }
+
+/* cited answer and pain-point cards */
+#screen-results .cite-card { box-shadow: 0 0 0 3px var(--blue), 4px 8px 0 3px var(--pix-ink); animation: pop-in 0.45s 0.2s steps(5) backwards; }
+#screen-results .pain { border-color: var(--pix-ink); box-shadow: inset 0 6px var(--pix-gold), 4px 5px 0 var(--pix-ink); }
+#screen-results .pain:nth-child(odd) { transform: rotate(-1.2deg); }
+#screen-results .pain:nth-child(even) { transform: rotate(1.2deg); }
+#screen-results .pain .icon { display: inline-block; width: fit-content; animation: wiggle 1.4s steps(2) infinite; }
+#screen-results .pain h3 { color: var(--pix-ink); }
+#screen-results .pain .k { color: #c2410c; }
+#screen-results .pain .p { color: var(--pix-ink); }
+#screen-results .pain .f { color: #1d7a43; }
+#screen-results .pager i { background: var(--pix-cream); border-color: var(--pix-ink); }
+#screen-results .pager i.on { background: var(--pix-gold); }
+
+/* lucky draw: a steaming cup, the lead on the sky, the small print in cream boxes */
+#screen-results .beat > .draw-ticket { position: relative; font-size: 54px; line-height: 1; animation: rise 0.45s steps(5) backwards; }
+#screen-results .draw-ticket .cup { display: inline-block; filter: drop-shadow(4px 4px 0 rgba(42, 22, 8, 0.35)); animation: wiggle 1.8s steps(2) infinite; }
+#screen-results .draw-ticket .steam { position: absolute; top: -6px; width: 6px; height: 6px; background: var(--pix-white); box-shadow: 0 0 0 2px rgba(42, 22, 8, 0.25); animation: steam-up 1.5s steps(5) infinite; }
+#screen-results .draw-ticket .s1 { left: 34%; } #screen-results .draw-ticket .s2 { left: 50%; animation-delay: 0.5s; } #screen-results .draw-ticket .s3 { left: 64%; animation-delay: 1s; }
+@keyframes steam-up { from { transform: translateY(6px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-26px); opacity: 0; } }
+#screen-results .draw-lead small { display: block; width: fit-content; margin: 8px auto 0; padding: 4px 10px 5px; color: var(--pix-ink); background: var(--pix-cream); border: 2px solid var(--pix-ink); }
+#screen-results .field { box-shadow: 3px 3px 0 var(--pix-ink); }
+#screen-results .field-label, #screen-results .notice { padding: 4px 10px 5px; color: var(--pix-ink); background: rgba(255, 245, 214, 0.92); border: 2px solid var(--pix-ink); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-results .beat > h2.card-sign, #screen-results .beat > h2.headline.stamp, #screen-results.day .beat, #screen-results .ticket,
+  #screen-results .pips i.on, #screen-results .stat-chip, #screen-results .plate-emoji, #screen-results .plate.served::before,
+  #screen-results .plate.served::after, #screen-results .medal, #screen-results .lb-row.you, #screen-results .r-check,
+  #screen-results .vote-hand, #screen-results .boost-preview .to, #screen-results .cite-card, #screen-results .pain .icon,
+  #screen-results .draw-ticket .cup, #screen-results .draw-ticket .steam, #screen-results.day #next.nudge { animation: none !important; }
+}
 .react-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 6; }
 .floaty { position: absolute; font-size: 31px; line-height: 1; margin: -16px 0 0 -16px; will-change: transform, opacity; animation: floaty var(--dur, 1800ms) ease-out forwards; }
 @keyframes floaty { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 12% { opacity: 1; transform: translate(0, -14px) scale(1.15); } 100% { transform: translate(var(--sway, 0), calc(var(--rise, 200px) * -1)) scale(0.9); opacity: 0; } }

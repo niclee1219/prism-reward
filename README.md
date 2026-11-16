@@ -1,11 +1,11 @@
 # PRISM Run
 
-**Ah Ma's Recipe**: a mobile-web pixel-art runner for the PRISM exhibition booth. You play a little beaver cook
-who has inherited Grandma's (Ah Ma's) hawker stall, and her recipe notes are as vague as undocumented code ("cook
-until it smells right"). Players scan a QR code, pick a dish (chicken rice, char kway teow or laksa), run through a
+**The Secret Recipe**: a mobile-web pixel-art runner for the PRISM exhibition booth. You play a little beaver cook
+who has just taken over a hawker stall and its recipe, and the recipe notes are as vague as undocumented code ("cook
+until it smells right"). Players scan a QR code, pick a dish (chicken rice, nasi lemak or laksa), run through a
 hawker centre and answer question gates. Each correct answer decodes one recipe step with PRISM ("talk to your code, understand it in minutes").
 Decode all 8 and the dish is served: that is the win. A leaderboard and a live booth screen make it
-competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 Starbucks gift card.
+competitive, and everyone who finishes can enter an IRAS lucky draw for a Starbucks gift card.
 
 - `/` the game (phone, portrait). A phone's first visit opens **Learn** over the home screen: ten short pixel scenes
   in which the visitor does each step of PRISM themselves (chop the code into pieces, file them by meaning, ask, pull
@@ -22,7 +22,7 @@ competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 St
 renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back end; static hosting on Cloudflare Pages.
 
 > **Before the event:** `src/content/questions.json`, the recipe steps in `src/content/dishes.ts` and the Learn
-> content in `src/content/learn.ts` are DRAFTS. A human must review all 36 questions, 24 recipe steps, and Learn's
+> content in `src/content/learn.ts` are DRAFTS. A human must review all 36 questions, 24 recipe steps (no pork or lard in any recipe), and Learn's
 > scene lines, three preset questions, answers and citations. Learn's ML model, code and file names are invented
 > for the demo; check that each answer agrees with its code snippets and that the line numbers look sensible.
 
@@ -111,7 +111,7 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
    supabase db push
    ```
 
-   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0008`. Each is
+   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0009`. Each is
    safe to run more than once.)
 
 3. Set the staff PIN:
@@ -233,7 +233,7 @@ src/
   game/sim/RunSim.ts       the run's rules: lanes, scrolling, gates, obstacles, pickups, endings (no drawing)
   game/pixel/              draws the run top-down as pixel art: World.ts (each frame, effects, the serve cutscene),
                            Street.ts, Runner.ts (the beaver), Props.ts (obstacles, coins, tingkat, gate),
-                           Fx.ts (particles), Serve.ts (Ah Ma's stall), Overlay.ts (pop-up text), view.ts (layout)
+                           Fx.ts (particles), Serve.ts (the stall), Overlay.ts (pop-up text), view.ts (layout)
   game/gateDirector.ts     picks questions: tier by time, no type twice in a row, no repeats, shuffled lanes
   game/difficulty.ts       speed / gate / obstacle curves
   ui/                      HUD, results beats, thank-you card (pixel forest), confetti, shared pixel styles
@@ -286,7 +286,7 @@ the server; staff can remove any run live.
 9. **A "cooldown" rejection is retried, not dropped.** Two runs finished offline are sent 10 s apart.
 10. **`questions.json` carries the draft flag as a `_comment` field,** because JSON cannot hold `//` comments.
 11. **No prizes to hand out.** The spin wheel, prize codes and staff redeem step are gone: the booth runs one
-    lucky draw (a $10 Starbucks gift card) from the email entries, drawn by hand from the CSV.
+    lucky draw (a Starbucks gift card) from the email entries, drawn by hand from the CSV.
 12. **Lucky draw entries are IRAS-only** (exact `@iras.gov.sg`, any case, no subdomains) and there is no
     consent checkbox: the card says the email is used only for the draw and to follow up on feedback.
 13. **Reactions poll, like the boards.** A `reactions` table and a `/reactions` endpoint; `/leaderboard` asks

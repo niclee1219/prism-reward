@@ -34,7 +34,7 @@ const HYPE: Record<number, [string, string]> = {
   4: ['STEADY LAH!', '#ffd166'],
   5: ['POWERFUL!', '#ff9f1c'],
   6: ['UNSTOPPABLE!', '#ff5d8f'],
-  7: ['AH MA PROUD!', '#b388ff'],
+  7: ['MASTER CHEF!', '#b388ff'],
 };
 const POWER_TEXT: Record<string, [string, string]> = {
   double: ['2X COINS!', '#ffd166'],
@@ -458,7 +458,7 @@ export class World {
     this.fx.burst(t.x, t.y - 4, C_LAND, 90, 7 * SPD, 0.9);
     // Launched well above the table so the diners' faces stay visible behind it.
     for (let i = 0; i < 5; i++) this.fx.confetti(t.x + (i - 2) * 8, t.y - 30, PARTY, 26);
-    this.overlay.banner('DISH SERVED!', `Ah Ma's ${dish.name}`, dish.colour);
+    this.overlay.banner('DISH SERVED!', `${dish.name}, decoded!`, dish.colour);
     if (this.sim.score.bonus) this.popScreen(`+${this.sim.score.bonus} BONUS`, 0.5, 0.46, '#52e08a', 30, 'combo');
     this.runner.cheer();
     this.cheerClock = 1;

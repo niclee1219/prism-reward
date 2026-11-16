@@ -1,14 +1,15 @@
-// The three inherited recipes. Each correct gate recovers the next step.
-// Ah Ma's notes are deliberately vague, like undocumented code; PRISM's version is the
+// The three recipes the player has taken over. Each correct gate recovers the next step.
+// The old notes are deliberately vague, like undocumented code; PRISM's version is the
 // decoded, specific step. DRAFT: a human who actually cooks should check the decoded steps.
+// No recipe may use pork or lard.
 import { SCORING } from '../config';
 
-export type DishId = 'chicken-rice' | 'char-kway-teow' | 'laksa';
+export type DishId = 'chicken-rice' | 'nasi-lemak' | 'laksa';
 
 export interface RecipeStep {
   emoji: string;
   ingredient: string;
-  /** What Ah Ma actually wrote. */
+  /** What the old notes actually say. */
   note: string;
   /** What PRISM decoded it to. */
   decoded: string;
@@ -43,20 +44,20 @@ export const DISHES: Dish[] = [
     ],
   },
   {
-    id: 'char-kway-teow',
-    name: 'Char Kway Teow',
-    emoji: '🍜',
+    id: 'nasi-lemak',
+    name: 'Nasi Lemak',
+    emoji: '🍛',
     colour: '#e63946',
-    blurb: 'Smoky flat noodles with real wok hei.',
+    blurb: 'Fragrant coconut rice with fiery sambal.',
     steps: [
-      { emoji: '🍜', ingredient: 'Kway teow', note: 'Flat noodles. Loosen first.', decoded: 'Separate 300 g fresh kway teow by hand; never rinse.' },
-      { emoji: '🐷', ingredient: 'Lard', note: 'Use the white stuff.', decoded: 'Render pork fat until crisp; keep the lard and the bits.' },
-      { emoji: '🔥', ingredient: 'Wok hei', note: 'Fire very big.', decoded: 'Heat the wok until it smokes before anything goes in.' },
-      { emoji: '🧄', ingredient: 'Garlic', note: 'Garlic first, quick quick.', decoded: '2 cloves minced garlic, 10 seconds only.' },
-      { emoji: '🦐', ingredient: 'Prawns', note: 'Add the sea things.', decoded: '6 prawns and a handful of cockles, cockles go in last.' },
-      { emoji: '🥚', ingredient: 'Egg', note: 'Egg goes under.', decoded: 'Push noodles aside, crack 1 egg into the gap, fold over.' },
-      { emoji: '🫗', ingredient: 'Sauce', note: 'Sweet and black, the usual ratio.', decoded: '1 tbsp sweet dark soy, 1 tsp light soy, 1 tsp fish sauce.' },
-      { emoji: '🌱', ingredient: 'Bean sprouts', note: 'Green at the end.', decoded: 'Toss in bean sprouts and chives for the last 20 seconds.' },
+      { emoji: '🍚', ingredient: 'Rice', note: 'Wash the rice. Until clean.', decoded: 'Rinse 2 cups jasmine rice 3 times, until the water runs clear.' },
+      { emoji: '🥥', ingredient: 'Coconut milk', note: 'Santan, the thick one.', decoded: 'Cook the rice in 250 ml coconut milk, 250 ml water and a pinch of salt.' },
+      { emoji: '🌿', ingredient: 'Pandan', note: 'Leaf inside, tie first.', decoded: 'Knot 3 pandan leaves and bury them in the rice with a slice of ginger.' },
+      { emoji: '🌶️', ingredient: 'Sambal', note: 'Chilli paste. Fry long long.', decoded: 'Fry blended dried chillies, shallots and belacan on low for 20 min.' },
+      { emoji: '🍯', ingredient: 'Tamarind and sugar', note: 'Sweet sour, ikut taste.', decoded: 'Stir 2 tbsp tamarind water and 1 tbsp palm sugar into the sambal.' },
+      { emoji: '🐟', ingredient: 'Ikan bilis', note: 'Small fish. Must be crispy.', decoded: 'Fry 50 g dried anchovies and a handful of peanuts until golden.' },
+      { emoji: '🥚', ingredient: 'Egg', note: 'Egg, not too hard.', decoded: 'Boil 1 egg for 7 min, cool it and cut it in half.' },
+      { emoji: '🥒', ingredient: 'Cucumber', note: 'Something green, cooling.', decoded: 'Slice a few rounds of cucumber for the side of the plate.' },
     ],
   },
   {

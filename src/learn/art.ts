@@ -133,7 +133,7 @@ export function chef(p: Pick<PixelCanvas, 'rect'>, x: number, y: number, dir: nu
   }
 }
 
-/** Ah Ma's notes, lying open: scribbles, stains, sticky notes and a page working loose. About 30 x 14. */
+/** The old recipe notes, lying open: scribbles, stains, sticky notes and a page working loose. About 30 x 14. */
 export function messyBook(p: PixelCanvas, x: number, y: number, t: number, still: boolean): void {
   const { rect } = p;
   // cover peeking out under the pages
@@ -359,13 +359,13 @@ export function counter(p: Pick<PixelCanvas, 'rect' | 'w' | 'h'>, top: number): 
   rect(0, top + 5, w, 1, P.steelDark);
 }
 
-/** The stall's menu board: three bowls (chicken rice, char kway teow, laksa) with price dots. 30 x 16. */
+/** The stall's menu board: three bowls (chicken rice, nasi lemak, laksa) with price dots. 30 x 16. */
 export function menuBoard(p: PixelCanvas, x: number, y: number): void {
   const { rect } = p;
   rect(x, y, 30, 16, P.woodEdge);
   rect(x + 1, y + 1, 28, 14, '#2f4f3a');
   rect(x + 1, y + 1, 28, 1, '#3d6a4d');
-  const bowls: [string, string][] = [['#fff5d6', '#e9a13b'], ['#5a3a1f', '#2b2b33'], ['#ff8a3d', '#c0392b']];
+  const bowls: [string, string][] = [['#fff5d6', '#e9a13b'], ['#f6f1e1', '#d62839'], ['#ff8a3d', '#c0392b']];
   bowls.forEach(([food, topper], i) => {
     const bx = x + 3 + i * 9;
     rect(bx, y + 5, 7, 2, food);
@@ -412,28 +412,27 @@ export function steam(p: PixelCanvas, x: number, y: number, t: number): void {
   }
 }
 
-/** Ah Ma's framed portrait: an older beaver with white hair in a bun and round glasses. 16 x 18. */
+/** The stall's framed photo: a steaming bowl on a gold star, the way old stalls hang their best review. 16 x 18. */
 export function portrait(p: Pick<PixelCanvas, 'rect'>, x: number, y: number): void {
   const { rect } = p;
   rect(x, y, 16, 18, P.woodEdge);
   rect(x + 1, y + 1, 14, 16, P.wood);
   rect(x + 2, y + 2, 12, 14, '#f6e7c8');
-  // hair bun and hair
-  rect(x + 6, y + 3, 4, 2, '#f0f0f0');
-  rect(x + 4, y + 5, 8, 2, '#e0e0e0');
-  // face
-  rect(x + 4, y + 7, 8, 7, P.fur);
-  rect(x + 6, y + 11, 4, 2, P.cream);
-  rect(x + 7, y + 11, 2, 1, P.ink);
-  rect(x + 7, y + 13, 1, 1, P.tooth);
-  rect(x + 8, y + 13, 1, 1, P.tooth);
-  // round glasses
-  rect(x + 4, y + 8, 3, 3, P.ink);
-  rect(x + 9, y + 8, 3, 3, P.ink);
-  rect(x + 5, y + 9, 1, 1, '#cfe9ff');
-  rect(x + 10, y + 9, 1, 1, '#cfe9ff');
-  rect(x + 7, y + 9, 2, 1, P.ink);
-  rect(x + 4, y + 14, 8, 2, '#c0392b'); // red blouse collar
+  // a gold star behind the bowl
+  rect(x + 7, y + 3, 2, 2, P.gold);
+  rect(x + 4, y + 5, 8, 2, P.gold);
+  rect(x + 5, y + 7, 6, 2, P.gold);
+  // steam
+  rect(x + 6, y + 4, 1, 2, P.white);
+  rect(x + 9, y + 3, 1, 2, P.white);
+  // the bowl: food on top, white sides
+  rect(x + 3, y + 9, 10, 1, P.ink);
+  rect(x + 4, y + 9, 8, 1, '#e9a13b');
+  rect(x + 3, y + 10, 10, 2, P.white);
+  rect(x + 4, y + 12, 8, 1, '#d0d8e0');
+  rect(x + 5, y + 13, 6, 1, P.ink);
+  // a red ribbon under it
+  rect(x + 4, y + 14, 8, 1, '#c0392b');
   rect(x + 7, y + 17, 2, 2, P.ink); // hook
 }
 

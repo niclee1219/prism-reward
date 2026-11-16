@@ -29,7 +29,7 @@ const SLIDES: Slide[] = [
   },
   {
     title: 'PICK THE RIGHT ANSWER',
-    text: "Question gates ask about Ah Ma's notes. Run through the lane with the right answer to decode a recipe step.",
+    text: 'Question gates ask about the recipe notes. Run through the lane with the right answer to decode a recipe step.',
     accent: '#52e08a',
     art: `<div class="ht ht-gates">
       <div class="q">How long to poach?</div>

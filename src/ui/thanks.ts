@@ -1,10 +1,10 @@
-// The last card: the pixel forest as a full-screen backdrop, a thank-you on a wooden sign, plus a confetti button and emoji reactions that
-// also show up on the big /leaderboard screen.
+// The last card: a thank-you on a wooden sign over the results screen's forest, plus a confetti button and emoji
+// reactions that also show up on the big /leaderboard screen.
 import { buzz } from '../game/haptics';
 import { EMOJI_KINDS, REACTION_EMOJI, sendReaction, type ReactionKind } from '../net/reactions';
 import { confetti } from './confetti';
 import { floatEmoji } from './floaty';
-import { startForest } from './forest';
+import type { ForestHandle } from './forest';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -14,21 +14,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''):
 }
 
 /**
- * Builds the thank-you card into `b`. `screen` is the full results screen: the forest is its backdrop and it is the
- * confetti canvas. Returns a cleanup that stops the forest and removes the backdrop; call it when leaving the card.
+ * Builds the thank-you card into `b`. `screen` is the full results screen (the confetti canvas); `forest` is the
+ * backdrop the results flow already runs, so the creatures can cheer along.
  */
-export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entered: boolean; first: boolean }): () => void {
+export function renderThanks(b: HTMLElement, screen: HTMLElement, forest: ForestHandle, opts: { entered: boolean; first: boolean }): void {
   b.classList.add('thanks');
-  const canvas = el('canvas', 'forest forest-backdrop pix-crisp');
-  canvas.setAttribute('aria-hidden', 'true');
-  screen.prepend(canvas);
-  screen.classList.add('thanks-on');
-  // Keep the creatures clear of the buttons and navigation along the bottom.
-  const forest = startForest(canvas, { bottomInset: 0.27 });
 
   const sign = el('div', 'pix-sign thanks-sign', 'THANK YOU!');
   sign.append(
-    el('small', '', opts.entered ? "You're in the draw for a $10 Starbucks gift card. Good luck!" : 'Thanks for playing PRISM Run!'),
+    el('small', '', opts.entered ? "You're in the draw for a Starbucks gift card. Good luck!" : 'Thanks for playing PRISM Run!'),
   );
   b.append(sign);
 
@@ -75,10 +69,4 @@ export function renderThanks(b: HTMLElement, screen: HTMLElement, opts: { entere
     buzz('win');
     forest.celebrate();
   }
-
-  return () => {
-    forest.stop();
-    canvas.remove();
-    screen.classList.remove('thanks-on');
-  };
 }

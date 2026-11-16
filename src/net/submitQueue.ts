@@ -1,6 +1,7 @@
 // Finished runs wait here until the server has them. The queue lives in localStorage,
 // so a run survives a dead connection, a closed tab or a reload.
 import { NET } from '../config';
+import { isDishId } from '../content/dishes';
 import { ApiError, api, type SubmitResult } from './api';
 import { deviceId, getJson, setJson } from './device';
 
@@ -62,7 +63,9 @@ export async function flush(): Promise<void> {
       const next = read()[0];
       if (!next) break;
       try {
-        const result = await api<SubmitResult>('/submit-run', { body: { ...next, device_id: deviceId() } });
+        // A run queued before a dish was renamed still carries the old id: send it without one rather than have it rejected.
+        const dish = isDishId(next.dish) ? next.dish : undefined;
+        const result = await api<SubmitResult>('/submit-run', { body: { ...next, dish, device_id: deviceId() } });
         settle(next.run_id, { ok: true, result });
         delay = NET.RETRY_MIN_MS;
       } catch (e) {

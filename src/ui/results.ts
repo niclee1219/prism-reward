@@ -1,4 +1,6 @@
-// The results flow: a handful of short beats in a fixed order, one per screen.
+// The results flow: a handful of short beats in a fixed order, one per screen. It wears Learn's daylight look: the
+// pixel forest runs behind every card, headings are wooden signs (the score card's is a red stamp that slams on), panels
+// are cream with ink outlines, and the forest's creatures cheer at the big moments.
 import { SCORING } from '../config';
 import { dishById } from '../content/dishes';
 import { PAIN_POINTS } from '../content/painpoints';
@@ -10,6 +12,8 @@ import { ApiError, api, type RankInfo, type SubmitResult } from '../net/api';
 import { deviceId, local } from '../net/device';
 import { onOutcome, type Outcome } from '../net/submitQueue';
 import { confetti } from './confetti';
+import { floatEmoji } from './floaty';
+import { startForest } from './forest';
 import { mountLeaderboard } from './leaderboard';
 import { renderThanks } from './thanks';
 
@@ -22,6 +26,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''):
   if (text) e.textContent = text;
   return e;
 }
+
+/** A card heading on a little wooden sign that swings in on two ropes, like Learn's signposts. */
+const sign = (text: string): HTMLElement => el('h2', 'card-sign pix-sign', text);
+
+/** One line of commentary in a cream speech bubble. */
+const bubble = (text: string): HTMLElement => el('p', 'bubble pix-panel', text);
+
+/** Linger this long on a card and NEXT starts to bob, as in Learn. */
+const NUDGE_MS = 7000;
 
 const REJECT_TEXT: Record<string, string> = {
   closed: 'Score submissions are closed right now.',
@@ -67,6 +80,28 @@ export function showResults(
   nav.append(back, next);
   root.append(holder, progress, nav);
 
+  // Learn's daylight: the pixel forest behind every card, kept running from the first card to the last.
+  root.classList.add('day');
+  const sky = el('canvas', 'forest forest-backdrop pix-crisp');
+  sky.setAttribute('aria-hidden', 'true');
+  const fx = el('div', 'fx-layer');
+  fx.setAttribute('aria-hidden', 'true');
+  root.append(sky, fx);
+  const forest = startForest(sky, { bottomInset: 0.2 });
+  let card: HTMLElement = holder;
+  /** The dish's ingredients float up out of the plate, one after another. */
+  const floatSteps = (plate: HTMLElement) => {
+    dish.steps.forEach((st, i) =>
+      setTimeout(() => {
+        if (!plate.isConnected) return;
+        const s = fx.getBoundingClientRect();
+        const r = plate.getBoundingClientRect();
+        floatEmoji(fx, st.emoji, { x: r.left - s.left + r.width * (0.2 + 0.6 * Math.random()), y: r.top - s.top });
+      }, 500 + i * 140),
+    );
+  };
+  let nudgeTimer: ReturnType<typeof setTimeout> | undefined;
+
   // Cards remember what already happened, so going back never replays or repeats anything.
   const seen = new Set<string>();
 
@@ -75,16 +110,21 @@ export function showResults(
     const first = !seen.has('score');
     const served = run.reason === 'served';
     const kind = served ? 'served' : run.reason === 'timeup' ? 'timeup' : 'crash';
-    const head = el('h2', `headline ${kind}`, served ? 'DISH SERVED!' : run.reason === 'timeup' ? "TIME'S UP!" : 'RUN OVER');
-    const plate = el('div', `plate${served ? ' served' : ''}`);
-    plate.append(el('span', 'plate-emoji', dish.emoji), el('span', 'plate-name', served ? `Ah Ma's ${dish.name}` : dish.name));
+    const head = el('h2', `headline stamp ${kind}`, served ? 'DISH SERVED!' : run.reason === 'timeup' ? "TIME'S UP!" : 'RUN OVER');
+    if (!first) head.classList.add('still');
+    const plate = el('div', `plate pix-panel${served ? ' served' : ''}`);
+    plate.append(el('span', 'plate-emoji', dish.emoji), el('span', 'plate-name', dish.name));
 
-    const ticket = el('div', 'ticket');
+    const ticket = el('div', 'ticket pix-panel');
     const big = el('div', 'big-score', first ? '0' : run.score.toLocaleString('en'));
     big.id = 'final-score';
     // Recipe progress as eight pips, so "how close was I" reads at a glance.
     const pips = el('div', 'pips');
-    for (let i = 0; i < SCORING.RECIPE_STEPS; i++) pips.append(el('i', i < run.recovered ? 'on' : ''));
+    for (let i = 0; i < SCORING.RECIPE_STEPS; i++) {
+      const pip = el('i', i < run.recovered ? 'on' : '');
+      pip.style.setProperty('--i', String(i));
+      pips.append(pip);
+    }
     const stats = el('div', 'stats');
     stats.append(el('span', 'stat-chip', `✔ ${run.correct}/${run.gates}`), el('span', 'stat-chip', `🔥 ${run.bestStreak}`));
     if (run.coins) {
@@ -93,19 +133,32 @@ export function showResults(
       stats.append(coins);
     }
     if (run.bonus) stats.append(el('span', 'stat-chip gold', `🍽 +${run.bonus}`));
+    stats.querySelectorAll<HTMLElement>('.stat-chip').forEach((c, i) => c.style.setProperty('--i', String(i)));
     ticket.append(el('div', 'ticket-label', 'SCORE'), big, pips, stats);
 
-    const line = el(
-      'div',
-      'sub',
+    const line = bubble(
       served
-        ? `All ${SCORING.RECIPE_STEPS} steps decoded. Ah Ma would be proud.`
-        : `Recovered ${run.recovered}/${SCORING.RECIPE_STEPS} steps. Ah Ma says: try again lah.`,
+        ? `All ${SCORING.RECIPE_STEPS} steps decoded. The recipe is yours now!`
+        : `Recovered ${run.recovered}/${SCORING.RECIPE_STEPS} steps. So close, try again lah!`,
     );
     const status = el('div', 'saving', 'Saving your score...');
     status.id = 'rank-status';
     b.append(head, plate, ticket, line, status);
-    if (served && first) confetti(root, 120);
+    if (first) {
+      // The stamp lands, the card jolts, and on a served run the dish's ingredients float up out of the plate.
+      setTimeout(() => {
+        if (!head.isConnected) return;
+        root.classList.remove('jolt');
+        void root.offsetWidth;
+        root.classList.add('jolt');
+        buzz('thump');
+      }, reducedMotion ? 0 : 380);
+      if (served) {
+        confetti(root, 120);
+        forest.celebrate();
+        if (!reducedMotion) floatSteps(plate);
+      }
+    }
 
     if (first) {
       // Count up with a light tick every few frames, then a thump when it lands.
@@ -136,7 +189,7 @@ export function showResults(
         return;
       }
       const r = o.result;
-      const box = el('div', 'rank-box');
+      const box = el('div', 'rank-box pix-panel');
       box.id = 'rank-box';
       const top10 = r.rank !== null && r.rank <= 10;
       const medal = el('div', `medal${r.rank === 1 ? ' gold' : r.rank === 2 ? ' silver' : r.rank === 3 ? ' bronze' : ''}`);
@@ -158,13 +211,14 @@ export function showResults(
       if (first) {
         confetti(root, r.rank === 1 ? 220 : top10 && r.is_best ? 150 : 60);
         buzz(top10 ? 'win' : 'thump');
+        if (top10 || r.is_best) forest.celebrate();
       }
     });
   };
 
   // --- beat 1a: the leaderboard, with the player's row highlighted --------------
   const beatBoard = (b: HTMLElement) => {
-    b.append(el('h2', '', '🏆 LEADERBOARD'));
+    b.append(sign('🏆 LEADERBOARD'));
     const body = el('div', 'lb-body');
     b.append(body);
     // Wait for this run to be saved so the new score shows up in the list.
@@ -176,7 +230,7 @@ export function showResults(
 
   // --- beat 1b: the recipe, decoded ---------------------------------------------
   const beatRecipe = (b: HTMLElement) => {
-    b.append(el('h2', '', run.recovered ? 'WHAT PRISM DECODED' : "AH MA'S NOTES"));
+    b.append(sign(run.recovered ? 'WHAT PRISM DECODED' : 'THE OLD NOTES'));
     const bar = el('div', 'decode-bar');
     const fill = el('i');
     fill.style.setProperty('--k', String(run.recovered / SCORING.RECIPE_STEPS));
@@ -192,18 +246,19 @@ export function showResults(
       text.append(el('div', 'r-note', `“${s.note}”`));
       text.append(el('div', 'r-decoded', got ? `→ ${s.decoded}` : '→ ??? (answer more gates to decode)'));
       li.append(text);
+      if (got) li.append(el('span', 'r-check', '✓'));
       list.append(li);
     });
-    b.append(list, el('p', 'sub', 'Vague notes are like code nobody documented. PRISM turns them into exact steps, with sources.'));
+    b.append(list, bubble('Vague notes are like code nobody documented. PRISM turns them into exact steps, with sources.'));
   };
 
   // --- beat 2: vote toggle ---------------------------------------------------
   const beatVote = (b: HTMLElement) => {
-    b.append(el('h2', '', 'ONE MORE BOOST'));
+    b.append(sign('ONE MORE BOOST'));
     const mult = server?.vote_bonus_multiplier ?? 1.1;
     const pct = Math.round((mult - 1) * 100);
     const base = server?.score ?? run.score;
-    const label = el('label', 'vote-card');
+    const label = el('label', 'vote-card pix-panel');
     const box = el('input');
     box.type = 'checkbox';
     box.id = 'vote';
@@ -211,8 +266,10 @@ export function showResults(
     box.checked = local.voted;
     const text = el('span', 'vote-text');
     text.append(el('b', '', 'I voted for the PRISM team'), el('small', '', `+${pct}% on your best score. We trust you.`));
-    label.append(el('span', 'vote-icon', '🗳️'), text, box);
-    const preview = el('div', 'boost-preview');
+    const point = el('i', 'vote-hand', '👆');
+    point.setAttribute('aria-hidden', 'true');
+    label.append(el('span', 'vote-icon', '🗳️'), text, box, point);
+    const preview = el('div', 'boost-preview pix-panel');
     const from = el('span', 'from', base.toLocaleString('en'));
     const to = el('span', 'to', Math.floor(base * mult).toLocaleString('en'));
     preview.append(from, el('span', 'arrow', '→'), to);
@@ -230,7 +287,10 @@ export function showResults(
         const r = await api<RankInfo>('/vote', { body: { device_id: deviceId(), voted: box.checked } });
         local.voted = box.checked;
         msg.textContent = box.checked ? `Bonus applied! Score ${r.score}. You're #${r.rank}.` : `Bonus removed. You're #${r.rank}.`;
-        if (box.checked) confetti(root, 40);
+        if (box.checked) {
+          confetti(root, 40);
+          forest.celebrate();
+        }
       } catch {
         box.checked = !box.checked;
         sync();
@@ -246,12 +306,12 @@ export function showResults(
     const missed = QUESTIONS.filter((q) => run.missed.includes(q.id));
     const pool = missed.length ? missed : QUESTIONS;
     const q = pool[Math.floor(Math.random() * pool.length)];
-    b.append(el('h2', '', missed.length ? 'ONE YOU MISSED' : 'DID YOU KNOW?'));
+    b.append(sign(missed.length ? 'ONE YOU MISSED' : 'DID YOU KNOW?'));
     const card = el('div', 'cite-card');
     const ans = el('div', 'ans');
     const src = el('div', 'src', `Source: ${q.citation}`);
     card.append(el('div', 'who', '◆ PRISM'), el('div', 'you', `You asked: ${q.q}`), ans, src);
-    b.append(card, el('p', 'sub', 'Every PRISM answer shows where it came from.'));
+    b.append(card, bubble('Every PRISM answer shows where it came from.'));
     // PRISM "types" its answer, then the source stamps on.
     if (reducedMotion) ans.textContent = q.explain;
     else {
@@ -276,10 +336,10 @@ export function showResults(
 
   // --- beat 4: pain-point cards ------------------------------------------------
   const beatPain = (b: HTMLElement) => {
-    b.append(el('h2', '', 'PRISM ALSO HELPS WHEN...'));
+    b.append(sign('PRISM ALSO HELPS WHEN...'));
     const strip = el('div', 'strip');
     for (const p of PAIN_POINTS) {
-      const c = el('div', 'pain');
+      const c = el('div', 'pain pix-panel');
       c.append(el('div', 'icon', p.icon), el('h3', '', p.title), el('div', 'k', p.kitchen), el('div', 'p', p.pain), el('div', 'f', `→ ${p.fix}`));
       strip.append(c);
     }
@@ -294,8 +354,10 @@ export function showResults(
 
   // --- beat 5: lucky draw (IRAS email + optional feedback) ---------------------
   const beatEmail = (b: HTMLElement) => {
-    b.append(el('div', 'draw-ticket', '☕'));
-    const lead = el('h2', 'draw-lead', 'Stand a chance to win a $10 Starbucks gift card!');
+    const cup = el('div', 'draw-ticket');
+    cup.append(el('span', 'cup', '☕'), el('i', 'steam s1'), el('i', 'steam s2'), el('i', 'steam s3'));
+    b.append(cup);
+    const lead = el('h2', 'draw-lead', 'Stand a chance to win a Starbucks gift card!');
     lead.append(el('small', '', 'Fill in your IRAS email to enter the lucky draw.'));
     const input = el('input', 'field');
     input.type = 'email';
@@ -320,6 +382,7 @@ export function showResults(
     const finish = () => {
       local.emailGiven = true;
       buzz('correct');
+      forest.celebrate();
       go();
     };
     send.addEventListener('click', async () => {
@@ -348,13 +411,10 @@ export function showResults(
     });
   };
 
-  // Set by cards that own a backdrop or loop; called whenever the card is replaced or the screen closes.
-  let leaveCard: (() => void) | null = null;
-
   // --- beat 6: thank you -------------------------------------------------------
   const beatThanks = (b: HTMLElement) => {
     next.textContent = 'PLAY AGAIN';
-    leaveCard = renderThanks(b, root, { entered: local.emailGiven || !!server?.entered, first: !seen.has('thanks') });
+    renderThanks(b, root, forest, { entered: local.emailGiven || !!server?.entered, first: !seen.has('thanks') });
   };
 
   // --- navigation ---------------------------------------------------------------
@@ -373,12 +433,14 @@ export function showResults(
   const history: number[] = [];
   const show = (i: number, dir: 'fwd' | 'back') => {
     next.textContent = 'NEXT ▸';
-    leaveCard?.();
-    leaveCard = null;
     const fresh = el('div', `beat in-${dir}`);
     fresh.dataset.beat = beats[i].id;
-    root.replaceChild(fresh, root.firstElementChild!);
+    root.replaceChild(fresh, card);
+    card = fresh;
     beats[i].build(fresh);
+    clearTimeout(nudgeTimer);
+    next.classList.remove('nudge');
+    if (!reducedMotion) nudgeTimer = setTimeout(() => next.classList.add('nudge'), NUDGE_MS);
     seen.add(beats[i].id);
     back.hidden = history.length < 2;
     // Count every card already seen plus the ones still ahead, so the total does not jump around.
@@ -393,9 +455,10 @@ export function showResults(
     do i++;
     while (i < beats.length && beats[i].skip?.());
     if (i >= beats.length) {
-      leaveCard?.();
-      leaveCard = null;
+      clearTimeout(nudgeTimer);
+      forest.stop();
       root.hidden = true;
+      root.classList.remove('day', 'jolt');
       root.innerHTML = '';
       onPlayAgain();
       return;

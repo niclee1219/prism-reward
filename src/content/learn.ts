@@ -1,6 +1,6 @@
 // Learn mode: how PRISM works, in ten scenes, for a general employee (not an engineer).
 //
-// DRAFT: needs human review. The scene lines and the three "coming next" signposts were agreed with the owner
+// DRAFT: needs human review. The scene lines and the three "potential explorations" signposts were agreed with the owner
 // (docs/superpowers/specs/2026-11-15-pixel-rework-design.md, Phase 4). The ML model, its code, the files and line numbers
 // below are INVENTED for the demo: they only have to look plausible and agree with each other. Check that the answers
 // match the code snippets and the citations before the event.
@@ -25,7 +25,7 @@ export interface LearnScene {
 }
 
 export const LEARN_SCENES: LearnScene[] = [
-  { id: 'problem', concept: 'The problem', line: "Code with no docs is like Ah Ma's notes." },
+  { id: 'problem', concept: 'The problem', line: 'Code with no docs is like a recipe with vague notes.' },
   { id: 'upload', concept: 'Upload', line: 'Give PRISM your codebase.' },
   { id: 'split', concept: 'Split', line: 'PRISM breaks it into small pieces.', stamp: 'CHUNKING', todo: 'Tap the book' },
   { id: 'embed', concept: 'Embed', line: 'Each piece is filed by meaning, not by keyword.', stamp: 'EMBEDDING', todo: 'Tap the cards' },
@@ -39,8 +39,8 @@ export const LEARN_SCENES: LearnScene[] = [
     stamp: 'RAG',
     stampSub: 'Retrieval-Augmented Generation',
   },
-  { id: 'why', concept: 'Why PRISM', line: 'Runs on the intranet, so code never leaves. Current government AI tools do not read code.' },
-  { id: 'next', concept: 'Coming next', line: 'Coming next to PRISM.', todo: 'Tap each sign' },
+  { id: 'why', concept: 'Why PRISM', line: 'Runs on the intranet, so code never leaves.' },
+  { id: 'next', concept: 'Potential explorations', line: 'Potential explorations for PRISM.', todo: 'Tap each sign' },
 ];
 
 /** What the chop counter says after each tap in the split scene (the book takes three chops). */
@@ -182,7 +182,7 @@ export const LEARN_QUESTIONS: LearnQuestion[] = [
   },
 ];
 
-/** Scene 10: what is coming next to PRISM. The owner's definitions; do not reword without asking. */
+/** Scene 10: potential explorations for PRISM. The owner's definitions; do not reword without asking. */
 export const SIGNPOSTS: { id: string; title: string; text: string }[] = [
   { id: 'governance', title: 'MODEL GOVERNANCE', text: 'Every ML model documented the same way, including the business reasoning behind it.' },
   { id: 'audit', title: 'AUDIT LOG', text: 'See exactly what changed between one version of a model and the next.' },
@@ -192,7 +192,7 @@ export const SIGNPOSTS: { id: string; title: string; text: string }[] = [
 /** The moment after FINISH. PLAY lands on the home screen, where the player picks a dish and a name. */
 export const LEARN_ENDING = {
   title: 'NOW COOK DINNER!',
-  sub: "Help the beaver decode Ah Ma's recipe, one question at a time.",
+  sub: 'Help the beaver decode the recipe, one question at a time.',
   play: 'PLAY',
 };
 
