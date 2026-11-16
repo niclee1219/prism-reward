@@ -1,11 +1,11 @@
 {
-  "_comment": "// DRAFT: needs human accuracy review. Hybrid theme: Ah Ma's recipe as a stand-in for undocumented code.",
+  "_comment": "// DRAFT: needs human accuracy review. Hybrid theme: a taken-over recipe as a stand-in for undocumented code. Gates now also test the RAG terms taught in Learn (chunking, embedding, retrieval, generation).",
   "questions": [
     {
       "id": "pvf-01",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "Ah Ma's gone. Her recipe has no notes. Fastest way?",
+      "q": "You took over a recipe with no notes. Fastest way?",
       "answers": [
         "Guess every ingredient",
         "Ask PRISM in plain English",
@@ -13,13 +13,13 @@
       ],
       "correct": 1,
       "explain": "PRISM reads the whole recipe book and answers in plain English, just like it does for code nobody documented.",
-      "citation": "ahma_recipes/index.md · line 1"
+      "citation": "stall_recipes/index.md · line 1"
     },
     {
       "id": "pvf-02",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "You inherited the stall. First move?",
+      "q": "You took over the recipe. First move?",
       "answers": [
         "Panic quietly",
         "Ask PRISM how it works",
@@ -61,7 +61,7 @@
       "id": "pvf-05",
       "type": "pain_vs_fix",
       "tier": 1,
-      "q": "Nobody knows why Ah Ma adds sugar. Quickest answer?",
+      "q": "Nobody knows why the recipe adds sugar. Quickest answer?",
       "answers": [
         "Ask PRISM about it",
         "Search old letters",
@@ -69,49 +69,49 @@
       ],
       "correct": 0,
       "explain": "Ask PRISM why a step exists and it shows the line that explains it, before you delete a rule that matters.",
-      "citation": "char_kway_teow.md · line 31"
+      "citation": "nasi_lemak.md · line 31"
     },
     {
       "id": "pvf-06",
       "type": "pain_vs_fix",
       "tier": 2,
-      "q": "Opening day is Friday. Need the whole recipe?",
+      "q": "The recipe book is huge. What does PRISM do first?",
       "answers": [
-        "Skim and guess",
-        "Ask PRISM targeted questions",
-        "Book ten cooking classes"
+        "Reads it in one go",
+        "Splits it into pieces",
+        "Skips to the end"
       ],
       "correct": 1,
-      "explain": "Targeted questions get you up to speed in days, not months, in a kitchen or a codebase.",
-      "citation": "stall_handbook.md · section 2"
+      "explain": "That's CHUNKING: the book, or the codebase, is cut into small pieces so PRISM can later pull just the part it needs.",
+      "citation": "PRISM user guide · chunking"
     },
     {
       "id": "pvf-07",
       "type": "pain_vs_fix",
       "tier": 2,
-      "q": "Ah Ma's notes are from 1998. Best check?",
+      "q": "What does RAG stand for?",
       "answers": [
-        "Trust the old notes",
-        "Ask PRISM what's current",
-        "Rewrite everything"
+        "Recipe And Garnish",
+        "Retrieval-Augmented Generation",
+        "Random Answer Guessing"
       ],
       "correct": 1,
-      "explain": "Old handover notes go stale. PRISM reads what's actually there today, recipe or code.",
-      "citation": "laksa.md · line 58"
+      "explain": "Retrieval-Augmented Generation: first retrieve the pieces that match your question, then generate the answer from them.",
+      "citation": "PRISM user guide · what is RAG"
     },
     {
       "id": "pvf-08",
       "type": "pain_vs_fix",
-      "tier": 2,
-      "q": "Her notebook and her tin label disagree. Who's right?",
+      "tier": 3,
+      "q": "Code can't leave the office. Why is PRISM okay?",
       "answers": [
-        "The older note",
-        "PRISM citing both sources",
-        "The loudest auntie"
+        "It prints the code",
+        "It runs on the intranet",
+        "It forgets the code"
       ],
       "correct": 1,
-      "explain": "When docs and code disagree, PRISM shows you what each says and where, so you can settle it.",
-      "citation": "laksa.md · line 31"
+      "explain": "PRISM runs on the intranet, so your code never leaves.",
+      "citation": "PRISM user guide · security"
     },
     {
       "id": "pvf-09",
@@ -187,29 +187,29 @@
       "id": "bq-05",
       "type": "best_question",
       "tier": 2,
-      "q": "Best way to ask about a measurement?",
+      "q": "How does PRISM know which pieces to pick?",
       "answers": [
-        "Amounts?",
-        "How much belacan goes in?",
-        "Why measure?"
+        "It picks at random",
+        "It matches by meaning",
+        "It reads the titles"
       ],
       "correct": 1,
-      "explain": "Ask exactly what you need and PRISM shows where the number comes from, like tracing a calculation in code.",
-      "citation": "laksa.md · line 76"
+      "explain": "That's EMBEDDING: every piece is filed by meaning, and so is your question. PRISM picks the pieces closest in meaning to what you asked.",
+      "citation": "PRISM user guide · embedding"
     },
     {
       "id": "bq-06",
       "type": "best_question",
       "tier": 2,
-      "q": "Which question will PRISM answer best?",
+      "q": "You ask a question. What happens to it first?",
       "answers": [
-        "Everything about everything",
-        "Which step needs the wok?",
-        "Help"
+        "Saved for later",
+        "Filed by meaning too",
+        "Sent to the chef"
       ],
       "correct": 1,
-      "explain": "Focused questions find the right page fast. 'Everything' finds nothing in particular.",
-      "citation": "char_kway_teow.md · line 9"
+      "explain": "Your question is embedded the same way as the pieces, so PRISM can match it against them.",
+      "citation": "PRISM user guide · embedding"
     },
     {
       "id": "bq-07",
@@ -229,15 +229,15 @@
       "id": "bq-08",
       "type": "best_question",
       "tier": 3,
-      "q": "Which question is most specific?",
+      "q": "You ask 'spicy'. Notes say 'lots of chilli'. Found?",
       "answers": [
-        "How do I cook?",
-        "What does Ah Ma do?",
-        "When do cockles go in?"
+        "No, words differ",
+        "Yes, same meaning",
+        "Only if spelled right"
       ],
-      "correct": 2,
-      "explain": "The most specific question gets the most useful, checkable answer.",
-      "citation": "char_kway_teow.md · line 17"
+      "correct": 1,
+      "explain": "PRISM matches meaning, not exact keywords, so 'spicy' finds the chilli step. Ask about 'tax rate' and it finds the code that works it out, whatever it's named.",
+      "citation": "PRISM user guide · embedding"
     },
     {
       "id": "bq-09",
@@ -271,15 +271,15 @@
       "id": "ta-02",
       "type": "trust_answer",
       "tier": 2,
-      "q": "Which answer can you check yourself?",
+      "q": "PRISM pulls only the matching pieces. That step is?",
       "answers": [
-        "\"Trust me\"",
-        "\"See sauces.md, line 88\"",
-        "\"It just tastes right\""
+        "Chunking",
+        "Retrieval",
+        "Generation"
       ],
       "correct": 1,
-      "explain": "A cited answer lets you open the page and see for yourself, same as a file and line in code.",
-      "citation": "sauces.md · line 88"
+      "explain": "That's RETRIEVAL: out of the whole book, or the whole codebase, PRISM pulls only the pieces that match your question.",
+      "citation": "PRISM user guide · retrieval"
     },
     {
       "id": "ta-03",
@@ -321,21 +321,21 @@
       ],
       "correct": 1,
       "explain": "Confidence isn't evidence. The one that cites its source wins.",
-      "citation": "char_kway_teow.md · line 31"
+      "citation": "nasi_lemak.md · line 31"
     },
     {
       "id": "ta-06",
       "type": "trust_answer",
       "tier": 3,
-      "q": "PRISM cites a page and line. Why useful?",
+      "q": "PRISM writes its answer from what?",
       "answers": [
-        "Looks official",
-        "You can open it",
-        "Makes answers longer"
+        "Its imagination",
+        "The pieces it retrieved",
+        "Yesterday's answers"
       ],
       "correct": 1,
-      "explain": "You can jump straight to the line and read it yourself, in the recipe book or in the code.",
-      "citation": "chicken_rice.md · line 76"
+      "explain": "That's GENERATION: the answer is written from the retrieved pieces, so every claim can point back to its source.",
+      "citation": "PRISM user guide · generation"
     },
     {
       "id": "ta-07",
@@ -369,15 +369,15 @@
       "id": "ta-09",
       "type": "trust_answer",
       "tier": 3,
-      "q": "Which answer is easiest to double-check?",
+      "q": "Why is a RAG answer easy to check?",
       "answers": [
-        "A detailed guess",
-        "One with page and line",
-        "A cousin's memory"
+        "It's shorter",
+        "It cites what it retrieved",
+        "It sounds confident"
       ],
       "correct": 1,
-      "explain": "A page and line beats any memory: you can check it in seconds.",
-      "citation": "laksa.md · line 58"
+      "explain": "A RAG answer comes from pieces PRISM actually retrieved, so it can show you which ones. A chatbot answering from memory can't.",
+      "citation": "PRISM user guide · citations"
     },
     {
       "id": "wn-01",
@@ -425,15 +425,15 @@
       "id": "wn-04",
       "type": "who_needs",
       "tier": 2,
-      "q": "Your sister wants a quick summary. Best source?",
+      "q": "Why can't general AI chat tools explain your code?",
       "answers": [
-        "Kopitiam gossip",
-        "PRISM's plain-English answer",
-        "A 2005 photo album"
+        "Code is too boring",
+        "They never read it",
+        "Code is in English"
       ],
       "correct": 1,
-      "explain": "PRISM gives a plain-English summary anyone can follow, for a recipe or for a system.",
-      "citation": "stall_handbook.md · section 2"
+      "explain": "A general AI tool hasn't read your codebase, so it can only guess. PRISM retrieves from your actual code before it answers.",
+      "citation": "PRISM user guide · why PRISM"
     },
     {
       "id": "wn-05",
@@ -453,15 +453,15 @@
       "id": "wn-06",
       "type": "who_needs",
       "tier": 2,
-      "q": "Your cousins are taking over the stall. They need?",
+      "q": "Chunk, embed, retrieve... what comes next?",
       "answers": [
-        "More kopi",
-        "PRISM to explain it",
-        "A time machine"
+        "Delete everything",
+        "Generate the answer",
+        "Chunk it again"
       ],
       "correct": 1,
-      "explain": "A team taking over something old needs it explained fast. PRISM does that for code too.",
-      "citation": "stall_handbook.md · line 64"
+      "explain": "After retrieval comes GENERATION: PRISM writes the answer from the pieces it pulled and shows its sources.",
+      "citation": "PRISM user guide · how it works"
     },
     {
       "id": "wn-07",
@@ -475,27 +475,27 @@
       ],
       "correct": 1,
       "explain": "Show the exact page and line. Reviewers trust what they can check.",
-      "citation": "char_kway_teow.md · line 103"
+      "citation": "nasi_lemak.md · line 103"
     },
     {
       "id": "wn-08",
       "type": "who_needs",
       "tier": 3,
-      "q": "Who benefits when answers include sources?",
+      "q": "Which step happens before retrieval?",
       "answers": [
-        "Only chefs",
-        "Anyone who must verify",
-        "Nobody really"
+        "Generation",
+        "Embedding",
+        "Serving the dish"
       ],
       "correct": 1,
-      "explain": "Anyone who has to stand behind an answer benefits from seeing its source.",
-      "citation": "PRISM user guide · citations"
+      "explain": "Pieces are embedded first, filed by meaning, so retrieval can match them to your question. Generation comes last.",
+      "citation": "PRISM user guide · how it works"
     },
     {
       "id": "wn-09",
       "type": "who_needs",
       "tier": 3,
-      "q": "Food critic asks why it tastes smoky. What helps?",
+      "q": "Food critic asks why the rice smells so good. You?",
       "answers": [
         "A hunch",
         "PRISM tracing the steps",
@@ -503,7 +503,7 @@
       ],
       "correct": 1,
       "explain": "PRISM traces cause to effect across steps, like tracing how code produced a result.",
-      "citation": "char_kway_teow.md · line 21"
+      "citation": "nasi_lemak.md · line 21"
     }
   ]
 }
