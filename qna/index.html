@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>PRISM Run · Q&amp;A Review</title>
+  </head>
+  <body class="qna-page">
+    <main class="qna">
+      <header class="qna-head">
+        <h1>PRISM Run · Question review</h1>
+        <p class="qna-sub" id="summary"></p>
+        <p class="qna-note">
+          Every question gate in the game, with its three answers, the correct one marked, the explanation shown after
+          answering, and its citation. Source: <code>src/content/questions.json</code>.
+        </p>
+        <div class="qna-filters" id="filters" role="group" aria-label="Filter by type"></div>
+      </header>
+      <div id="list"></div>
+    </main>
+    <script type="module" src="/src/qna/qna.ts"></script>
+  </body>
+</html>
