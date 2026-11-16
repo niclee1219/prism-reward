@@ -60,13 +60,20 @@ const CAT_D = '#2a2a35';
 const CAT_L = '#5a5a72';
 const CAT_EYE = '#c7f464';
 
-/** The red warning pad every obstacle stands on: 22 wide, red top, a red-and-black band along its front edge. */
-function pad(): void {
-  b(-11, -6, 22, 9, P.ink);
-  b(-10, -5, 20, 5, HAZARD_RED);
-  b(-10, -5, 20, 1, PAD_LIGHT);
+/** Half the width of the red warning pad, at most: 22 px wide. */
+const PAD_HALF = 11;
+
+/**
+ * The red warning pad every obstacle stands on: 22 wide (narrower on narrow lanes, so pads in neighbouring lanes
+ * never touch), red top, a red-and-black band along its front edge. half = half the width, outline included.
+ */
+function pad(half: number): void {
+  const w = half * 2;
+  b(-half, -6, w, 9, P.ink);
+  b(1 - half, -5, w - 2, 5, HAZARD_RED);
+  b(1 - half, -5, w - 2, 1, PAD_LIGHT);
   for (let r = 0; r < 2; r++) {
-    for (let i = 0; i < 20; i += 1) b(-10 + i, r, 1, 1, (i + 4 - r) % 4 < 2 ? HAZARD_BLACK : HAZARD_RED);
+    for (let i = 0; i < w - 2; i += 1) b(1 - half + i, r, 1, 1, (i + 4 - r) % 4 < 2 ? HAZARD_BLACK : HAZARD_RED);
   }
 }
 
@@ -79,7 +86,8 @@ function sway(time: number, id: number): number {
 /** x centre, y ground. */
 export function drawObstacle(f: Frame, kind: ObstacleKind, x: number, y: number, id: number): void {
   at(f.art.rect, x, y, id % 2 ? -1 : 1);
-  pad();
+  // Leave at least 2 px of floor between the pads of two neighbouring lanes.
+  pad(Math.min(PAD_HALF, (f.view.laneW - 2) >> 1));
   switch (kind) {
     case 'stools':
       stools(f.time, id);
@@ -135,9 +143,7 @@ function lean(k: number, s: number): number {
 }
 
 /** A tray-return trolley: steel frame, stacked blue trays, a bowl left on top, wheels. */
-function trolley(time: number, id: number): void {
-  void time;
-  void id;
+function trolley(_time: number, _id: number): void {
   ell(X, Y - 2, 10, 2, SHADOW);
   o(-8, -22, 16, 1); // handle bar
   o(-8, -21, 1, 2);
@@ -339,32 +345,36 @@ export function drawPickup(fr: Frame, kind: 'coin' | 'tingkat', x: number, y: nu
   else tingkat(fr.time, id, fr.reduced);
 }
 
-/** A 7 px gold coin hovering over a small shadow, spinning through four frames; neighbours spin out of step. */
+/**
+ * A small round gold coin, 5 px tall with its outline, sitting on a 3 px shadow, spinning through four frames;
+ * neighbours spin out of step. Coins in a line are only about 6 art px apart on a short phone, so the coin plus its
+ * shadow fit in 6 rows: each coin's shadow is the dark gap that separates it from the next one, not a gold rod.
+ */
 function coin(time: number, id: number): void {
   const k = Math.floor((time + id * 0.09) * 9) % 4;
-  b(-2, -1, 5, 1, SHADOW);
-  const top = -9;
+  b(-1, 0, 3, 1, SHADOW);
+  const top = -5;
   if (k === 0) {
-    // face on
-    b(-2, top, 5, 7, P.ink);
-    b(-3, top + 1, 7, 5, P.ink);
-    b(-1, top + 1, 3, 5, P.gold);
-    b(-2, top + 2, 5, 3, P.gold);
-    b(1, top + 3, 1, 2, P.goldShade);
-    b(-1, top + 4, 2, 1, P.goldShade);
-    b(-1, top + 2, 1, 1, P.white);
+    // face on: a 5 x 5 disc with its corners cut, a white glint top left and a shaded rim bottom right
+    b(-1, top, 3, 5, P.ink);
+    b(-2, top + 1, 5, 3, P.ink);
+    b(-1, top + 1, 3, 3, P.gold);
+    b(1, top + 2, 1, 2, P.goldShade);
+    b(0, top + 3, 1, 1, P.goldShade);
+    b(-1, top + 1, 1, 1, P.white);
   } else if (k === 2) {
     // edge on
-    b(-1, top, 3, 7, P.ink);
-    b(0, top + 1, 1, 5, P.goldShade);
-    b(0, top + 2, 1, 1, P.gold);
+    b(-1, top, 3, 5, P.ink);
+    b(0, top + 1, 1, 3, P.goldShade);
+    b(0, top + 1, 1, 1, P.gold);
   } else {
-    // three quarters, turning
-    b(-1, top, 3, 7, P.ink);
-    b(-2, top + 1, 5, 5, P.ink);
-    b(-1, top + 1, 3, 5, P.gold);
-    b(k === 1 ? 1 : -1, top + 2, 1, 3, P.goldShade);
-    b(k === 1 ? -1 : 1, top + 2, 1, 1, P.white);
+    // three quarters, turning: one column narrower, the glint and the shade swapping sides
+    const l = k === 1 ? -1 : -2;
+    b(l + 1, top, 2, 5, P.ink);
+    b(l, top + 1, 4, 3, P.ink);
+    b(l + 1, top + 1, 2, 3, P.gold);
+    b(k === 1 ? 0 : -1, top + 1, 1, 1, P.white);
+    b(k === 1 ? 1 : 0, top + 2, 1, 2, P.goldShade);
   }
 }
 

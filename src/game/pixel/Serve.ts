@@ -14,7 +14,7 @@ import type { Art, Frame } from './types';
 import type { View } from './view';
 
 /** Seconds into the cutscene. CUT: the top-down dash ends and the side view starts. */
-export const SERVE_T: { CUT: number; RAISE: 1.65; THROW: 2.5; LAND: 2.9 } = { CUT: 1.15, RAISE: 1.65, THROW: 2.5, LAND: 2.9 };
+export const SERVE_T = { CUT: 1.15, RAISE: 1.65, THROW: 2.5, LAND: 2.9 };
 
 /** The wipe in from the street: ink bars slide away in steps. */
 const WIPE_S = 0.3;
@@ -49,6 +49,12 @@ const NOODLE = '#5a3a1f';
 const CHIVE = '#52e08a';
 const SOUP_BOWL = '#f2efe6';
 const SIGN_BG = '#a8262f';
+
+// Option objects for the Learn sprites, reused every frame so drawing allocates nothing.
+const WALL_OPT = { lamp: 0.72, lampY: 0 };
+const CHEF_OPT: { arm: Arm; mouth: boolean; bob: number; blink: boolean } = { arm: 'forward', mouth: false, bob: 0, blink: false };
+const CUST_OPT = { cheer: false, bob: 0, lookUp: false, reach: false };
+const AMA_OPT = { cheer: false, bob: 0, lookUp: false };
 
 // A 3 x 5 font for the stall sign (Learn's word() has only the letters its scenes need).
 const SIGN_TEXT = 'AH MA';
@@ -144,8 +150,7 @@ export class ServeScene {
   }
 
   /** st = seconds into the cutscene; true exactly once, at LAND. */
-  update(f: Frame, st: number): boolean {
-    void f;
+  update(_f: Frame, st: number): boolean {
     if (this.landed || !this.dish || st < SERVE_T.LAND) return false;
     this.landed = true;
     return true;
@@ -163,7 +168,8 @@ export class ServeScene {
     const party = st >= T.LAND;
 
     // --- the stall wall, as in Learn ---
-    stallWall(pc, L.floor, { lamp: 0.72, lampY: L.floor - 45 });
+    WALL_OPT.lampY = L.floor - 45;
+    stallWall(pc, L.floor, WALL_OPT);
     const board = Math.min(v.w - 32, L.tableX - 6);
     portrait(pc, Math.max(L.counterW + 2, board - 20), L.floor - 76);
     menuBoard(pc, board, L.floor - 74);
@@ -175,7 +181,11 @@ export class ServeScene {
     if (party) arm = 'up';
     else if (st >= T.RAISE && st < T.THROW + 0.08) arm = 'up';
     const hop = still ? 0 : party ? (frame8 % 4 < 2 ? 2 : 0) : st >= T.RAISE && st < T.THROW ? frame8 & 1 : 0;
-    chef(art, L.chefX, L.feet, 1, { arm, mouth: st >= T.THROW, bob: hop, blink: !party && frame8 % 23 === 0 });
+    CHEF_OPT.arm = arm;
+    CHEF_OPT.mouth = st >= T.THROW;
+    CHEF_OPT.bob = hop;
+    CHEF_OPT.blink = !party && frame8 % 23 === 0;
+    chef(art, L.chefX, L.feet, 1, CHEF_OPT);
     const s = pc;
     const fullW = s.w;
     const fullH = s.h;
@@ -191,8 +201,15 @@ export class ServeScene {
     this.table(rect, art, L);
     const cheerA = party && (still || frame8 % 4 < 2);
     const cheerB = party && (still || (frame8 + 1) % 4 < 2);
-    person(rect, L.custX, L.seatY, L.floor, 1, { cheer: cheerA, bob: party && !still && cheerA ? 1 : 0, lookUp: flying, reach: !party && !flying });
-    ahMa(rect, L.amaX, L.seatY, L.floor, -1, { cheer: cheerB, bob: party && !still && cheerB ? 1 : 0, lookUp: flying || (st >= T.RAISE && !party) });
+    CUST_OPT.cheer = cheerA;
+    CUST_OPT.bob = party && !still && cheerA ? 1 : 0;
+    CUST_OPT.lookUp = flying;
+    CUST_OPT.reach = !party && !flying;
+    person(rect, L.custX, L.seatY, L.floor, 1, CUST_OPT);
+    AMA_OPT.cheer = cheerB;
+    AMA_OPT.bob = party && !still && cheerB ? 1 : 0;
+    AMA_OPT.lookUp = flying || (st >= T.RAISE && !party);
+    ahMa(rect, L.amaX, L.seatY, L.floor, -1, AMA_OPT);
     if (party && !still && !f.lowFx) {
       // A little heart rises from Ah Ma, in steps.
       const k = (frame8 % 12) / 12;
@@ -202,7 +219,7 @@ export class ServeScene {
     // --- the dish ---
     if (this.dish) {
       if (st < T.RAISE) {
-        plate(rect, L.lowX, L.lowY + 0, null, '', '');
+        plate(rect, L.lowX, L.lowY, null, '', '');
       } else if (st < T.THROW) {
         // Overhead; it rides the chef's bob.
         this.drawDish(rect, L.upX, L.upY - hop);

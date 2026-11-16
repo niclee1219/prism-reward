@@ -16,7 +16,7 @@ import { Runner } from './Runner';
 import { SERVE_T, ServeScene } from './Serve';
 import { Street } from './Street';
 import { makeArt, type Art, type Frame } from './types';
-import { depthY, laneX, makeView, toStage, type View } from './view';
+import { depthY, floorY, laneX, makeView, toStage, type View } from './view';
 
 const PARTY = ['#ffd166', '#e63946', '#52e08a', '#8ecae6', '#b388ff', '#ff5d8f'];
 const CHEERS = ['😋', '👏', '❤️', '🤤', '⭐', '🔥'];
@@ -67,6 +67,8 @@ const HEAD = 16;
  * the thing it hit instead of piled on top of it (where the obstacle's head poked up over the beaver's).
  */
 const KNOCK_PX = 16;
+/** CSS px from the bottom of the HUD to the middle of the ORDER UP! call-out (half its height at full size, and a gap). */
+const ORDER_UP_BELOW_HUD = 26;
 const KNOCK_S = 0.3;
 /** Art px of shake per unit of `shake`. */
 const SHAKE_PX = 5;
@@ -340,20 +342,21 @@ export class World {
   private drawThings(px: number, py: number): void {
     const sim = this.sim;
     const v = this.view;
+    const t = sim.travelled;
     this.qn = 0;
     if (!this.serving) {
       for (let i = 0; i < sim.obstacles.length; i++) {
         const o = sim.obstacles[i];
-        if (Number.isFinite(o.d)) this.queue(Item.Obstacle, i, depthY(v, o.d));
+        if (Number.isFinite(o.d)) this.queue(Item.Obstacle, i, floorY(v, o.d, t));
       }
       for (let i = 0; i < sim.pickups.length; i++) {
         const p = sim.pickups[i];
         if (p.taken && p.d > -20) continue; // collected (sim drops it next frame)
-        this.queue(Item.Pickup, i, depthY(v, p.d));
+        this.queue(Item.Pickup, i, floorY(v, p.d, t));
       }
     }
-    if (this.gate && sim.gate) this.queue(Item.Gate, 0, depthY(v, sim.gate.d));
-    for (let i = 0; i < this.dyingGates.length; i++) this.queue(Item.DyingGate, i, depthY(v, this.dyingGates[i].d));
+    if (this.gate && sim.gate) this.queue(Item.Gate, 0, floorY(v, sim.gate.d, t));
+    for (let i = 0; i < this.dyingGates.length; i++) this.queue(Item.DyingGate, i, floorY(v, this.dyingGates[i].d, t));
     // Behind the start screen the panel covers the beaver on every phone size except for its tail poking out
     // between the panel's pieces, which read as a smudge; it appears with the hop at READY instead.
     if (sim.mode !== 'attract' || this.introT >= 0) this.queue(Item.Runner, 0, py);
@@ -581,8 +584,12 @@ export class World {
     this.serve.start(dishById(this.sim.dish));
     this.servePoints();
     this.overlay.flash('rgba(255,209,102,0.5)');
-    // Low on the screen, under the beaver's feet: the beaver dashes up and away from it instead of through it.
-    this.popScreen('ORDER UP!', 0.5, 0.74, '#ffd166', 40, 'power');
+    // Just under the HUD: low on the screen it landed on the answered question panel, which stays up for half a
+    // second, and level with the beaver it hid the dash. Up here the street is empty; on tall phones the beaver
+    // stops short of it, on short ones it only reaches it as the call-out fades.
+    const bar = this.stage.querySelector<HTMLElement>('.hud-bar');
+    const top = bar ? bar.getBoundingClientRect().bottom - this.stage.getBoundingClientRect().top : 90;
+    this.overlay.pop('ORDER UP!', this.stage.clientWidth / 2, top + ORDER_UP_BELOW_HUD, '#ffd166', 40, 'power');
     buzz('shield');
   }
 

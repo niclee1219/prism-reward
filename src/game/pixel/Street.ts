@@ -6,6 +6,7 @@
 import { hash } from '../../scene/pixelCanvas';
 import { P, TILE } from './palette';
 import type { Art, Frame } from './types';
+import { scrollPx } from './view';
 
 /** Floor tile size in art px. */
 const TILE_PX = 8;
@@ -15,8 +16,6 @@ const ZONE = 3;
 
 // Floor colours. The lane colours stay within a few shades of P.tile so a fast scroll never strobes.
 const DIVIDER = '#e6f2e9';
-const ARROW = '#f2dd96';
-const ARROW_SHADE = '#e3c977';
 const SIDE_FLOOR = '#dcc6a0';
 const SIDE_LINE = '#c9b087';
 const SIDE_SHADE = '#d4bc93';
@@ -219,6 +218,7 @@ function fan(frame: number): void {
 }
 
 export class Street {
+  /** Nothing to clear: the street is drawn from the sim's distance alone. World calls it like the other parts. */
   reset(): void {}
 
   draw(f: Frame): void {
@@ -226,7 +226,7 @@ export class Street {
     const { rect } = art;
     const right = v.roadX + 3 * v.laneW;
     // World row wy sits at screen y = wy + scroll; scroll grows as the run goes on, so the floor moves down.
-    const scroll = Math.floor(sim.travelled / v.unitsPerPx) + v.playerY;
+    const scroll = scrollPx(v, sim.travelled) + v.playerY;
     const frame = f.lowFx || f.reduced ? -1 : Math.floor(f.time * 6);
 
     // --- lanes: pale green tiles, soft per-tile shading, subtle grout --------------------------------------
@@ -250,31 +250,19 @@ export class Street {
     }
     for (let c = col0 + 1; c <= col1; c++) rect(mid + c * TILE_PX, 0, 1, v.h, TILE.line);
 
-    // Rare floor details, all pale and flat so they never read as something to dodge or grab.
+    // A rare drain cover, pale and flat so it never reads as something to dodge or grab. (No painted arrows in the
+    // lanes: in a swipe game an arrow on the floor reads as an instruction.)
     for (let r = row0 - 1; r <= row1; r++) {
       const y = r * TILE_PX + scroll;
       for (let l = 0; l < 3; l++) {
         const k = hash(r * 3 + l, 911);
-        if (k > 0.05) continue;
+        if (k >= 0.02) continue;
         const lx = v.roadX + l * v.laneW;
-        if (k < 0.02) {
-          // a square drain cover, steel with slots
-          const x = lx + 4 + Math.floor(k * 700) % (v.laneW - 13);
-          rect(x, y + 1, 6, 6, P.steelFront);
-          rect(x + 1, y + 2, 4, 4, P.steel);
-          rect(x + 1, y + 3, 4, 1, P.steelFront);
-          rect(x + 1, y + 5, 4, 1, P.steelFront);
-        } else {
-          // a painted arrow pointing to the nearest side, towards the tray-return racks
-          const toLeft = l === 0 || (l === 1 && k < 0.035);
-          const ax = lx + Math.round(v.laneW / 2) - 4;
-          for (let i = 0; i < 3; i++) {
-            const x = toLeft ? ax + i : ax + 8 - i;
-            rect(x, y + 3 - i, 1, 2 + i * 2, ARROW);
-          }
-          rect(toLeft ? ax + 3 : ax, y + 3, 6, 2, ARROW);
-          rect(toLeft ? ax + 3 : ax, y + 4, 6, 1, ARROW_SHADE);
-        }
+        const x = lx + 4 + Math.floor(k * 700) % (v.laneW - 13);
+        rect(x, y + 1, 6, 6, P.steelFront);
+        rect(x + 1, y + 2, 4, 4, P.steel);
+        rect(x + 1, y + 3, 4, 1, P.steelFront);
+        rect(x + 1, y + 5, 4, 1, P.steelFront);
       }
     }
 

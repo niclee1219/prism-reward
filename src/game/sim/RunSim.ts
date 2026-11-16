@@ -1,4 +1,4 @@
-// The whole run as pure logic: no rendering, no DOM. The 3D renderer reads this state
+// The whole run as pure logic: no rendering, no DOM. The pixel-art renderer reads this state
 // every frame and reacts to its events. Depth is "distance ahead of the player" (d);
 // the player is always at d = 0 and the world moves toward them.
 import { GATES, OBSTACLES, PICKUPS, RUN, SCORING, SERVE, WORLD, servedBonus, speedFactorAt } from '../../config';
@@ -111,7 +111,7 @@ export class RunSim {
   doubleUntil = 0;
   magnetUntil = 0;
   dish: DishId = 'chicken-rice';
-  /** Current speed modifiers, read by the renderer for camera effects. */
+  /** Current speed modifiers, read by the renderer for the run cadence and speed lines. */
   boosted = false;
   slowed = false;
   ramp = 1;

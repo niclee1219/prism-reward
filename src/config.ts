@@ -26,8 +26,12 @@ export const VIEW = {
 export const WORLD = {
   /** Obstacle rows appear this far ahead (just above the top of the screen, so nothing pops in). */
   SPAWN_DIST: 420,
-  /** Things are removed once they are this far behind the player (far enough to scroll off the bottom of the screen). */
-  DESPAWN_DIST: -260,
+  /**
+   * Things are removed once they are this far behind the player: far enough that the top of the tallest sprite has
+   * scrolled off the bottom of the screen on every phone. The worst case is a short, narrow stage, where the beaver
+   * runs high to leave room for the question panel (320x496 at ?px=5 needs about 508); tall stages need about 306.
+   */
+  DESPAWN_DIST: -520,
   /** A gate is answered when it is this close. */
   GATE_HIT_DIST: 6,
 };
