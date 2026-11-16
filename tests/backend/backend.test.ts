@@ -110,6 +110,24 @@ describe('submit-run', () => {
     const lb = await call('leaderboard', undefined, { query: `?device_id=${d}` });
     expect(lb.body).toMatchObject({ total_players: 1, total_plays: 2, me: { rank: 1, score: 3000 } });
   });
+
+  it('lists recent runs newest first, with the player standing, best and first flags', async () => {
+    const d = device();
+    await call('submit-run', run({ score: 4000 }));
+    await call('submit-run', run({ device_id: d, nickname: 'Again', score: 2000 }));
+    await pool.query(`update runs set created_at = created_at - interval '11 seconds'`);
+    await call('submit-run', run({ device_id: d, nickname: 'Again', score: 900 }));
+    const recent = (await call('leaderboard', undefined)).body.recent;
+    expect(recent).toHaveLength(3);
+    expect(recent[0]).toMatchObject({ nickname: 'Again', run_score: 900, score: 2000, rank: 2, best: false, first: false });
+    expect(recent[1]).toMatchObject({ nickname: 'Again', run_score: 2000, best: true, first: true });
+    expect(recent[0].key).toBe(recent[1].key);
+    expect(recent[0].id).not.toBe(recent[1].id);
+    // Old runs drop out of the feed, and removed runs never appear.
+    await pool.query(`update runs set created_at = now() - interval '11 minutes' where score = 4000`);
+    await pool.query(`update runs set status = 'removed' where score = 900`);
+    expect((await call('leaderboard', undefined)).body.recent.map((r: any) => r.run_score)).toEqual([2000]);
+  });
 });
 
 describe('vote bonus', () => {

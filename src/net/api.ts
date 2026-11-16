@@ -36,8 +36,26 @@ export async function claimName(deviceId: string, nickname: string): Promise<{ n
   return api('/claim-name', { body: { device_id: deviceId, nickname } });
 }
 
+/** A recently finished run, with the player's current board standing. */
+export interface RecentRun {
+  id: string;
+  key: string;
+  nickname: string;
+  run_score: number;
+  /** The player's board score (best run, bonus included). */
+  score: number;
+  rank: number;
+  /** This run is the player's best. */
+  best: boolean;
+  /** This is the player's first run. */
+  first: boolean;
+  dish?: string | null;
+}
+
 export interface LeaderboardResult {
   top: { rank: number; nickname: string; score: number; key: string; dish?: string | null; served?: boolean }[];
+  /** Newest first. Missing from backends older than migration 0008. */
+  recent?: RecentRun[];
   total_players: number;
   total_plays: number;
   me: { rank: number; score: number } | null;

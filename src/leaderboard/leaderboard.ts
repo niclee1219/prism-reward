@@ -1,5 +1,6 @@
-// /leaderboard: the "come and play" screen for a laptop. Polls the top 10, and every time somebody
-// makes the board for the first time, or lands in the top 10, or steals the crown, it stages a show.
+// /leaderboard: the "come and play" screen for a laptop. Polls the top 10 and the latest runs, and
+// stages a show for every finisher: a small one for a run outside the top 10, a bigger one for a new
+// high score or a climb, and the full works for landing in the top 10 or stealing the crown.
 import QRCode from 'qrcode';
 import '../ui/styles.css';
 import './leaderboard.css';
@@ -8,7 +9,7 @@ import { DISHES } from '../content/dishes';
 import { reducedMotion } from '../game/perf';
 import { api, type LeaderboardResult } from '../net/api';
 import { createDemo } from './demo';
-import { diffBoard, entryTarget, TOP_N, type BoardEvent, type Entry } from './diff';
+import { diffBoard, diffRuns, entryTarget, TOP_N, weight, type BoardEvent, type Entry } from './diff';
 import { Fx, Sound, type Stinger } from './fx';
 import { startSkyline } from '../scene/skyline';
 import { planReactions } from './reactions';
@@ -45,6 +46,8 @@ const label = (e: Entry) => `${dishEmoji(e.dish) ? `${dishEmoji(e.dish)} ` : ''}
 
 // ---------- state ----------
 let current: Entry[] | null = null;
+/** Run ids already shown (or already there when the screen opened); null until the first poll. */
+let seenRuns: Set<string> | null = null;
 let lastPlays = -1;
 let failures = 0;
 const rows = new Map<string, HTMLLIElement>();
@@ -142,6 +145,15 @@ function replay(el: HTMLElement, cls: string): void {
   el.classList.add(cls);
 }
 
+/** Light up a row that is already on the board (a climb or a new high score). */
+function highlight(key: string): void {
+  const li = rows.get(key);
+  if (!li) return;
+  replay(li, 'climb');
+  const r = li.getBoundingClientRect();
+  fx.sparks(r.left + r.width / 2, r.top + r.height / 2, 40);
+}
+
 /** Lift a row out of "incoming" and slam it onto the board. */
 function reveal(key: string): void {
   pending.delete(key);
@@ -208,12 +220,16 @@ function remember(line: string): void {
 // ---------- the show ----------
 function enqueue(events: BoardEvent[]): void {
   queue.push(...events);
-  // Never let the room wait more than a few beats: drop the oldest entries first, keep first/king.
-  while (queue.length > 5) {
-    const i = queue.findIndex((e) => e.type === 'entry');
-    if (i < 0) break;
-    reveal(queue[i].entry.key);
-    queue.splice(i, 1);
+  // Never let the room wait more than a few beats: drop the smallest moments first (runs, then
+  // records, climbs, entries; oldest first among equals), and never first/king.
+  while (queue.length > 6) {
+    let drop = -1;
+    queue.forEach((e, i) => {
+      if (e.type !== 'first' && e.type !== 'king' && (drop < 0 || weight(e) < weight(queue[drop]))) drop = i;
+    });
+    if (drop < 0) break;
+    const [ev] = queue.splice(drop, 1);
+    if (ev.type === 'entry') reveal(ev.entry.key);
   }
   void drain();
 }
@@ -229,45 +245,101 @@ async function drain(): Promise<void> {
   pending.forEach(reveal); // anything that never got its moment still must not stay hidden
 }
 
-function describe(ev: BoardEvent): { kind: string; kicker: string; title: string; sub: string; stinger: Stinger; sparks: number; cannons: number; rain: number; heat: number; ms: number } {
+interface Show {
+  kind: string;
+  kicker: string;
+  title: string;
+  sub: string;
+  stinger: Stinger;
+  sparks: number;
+  cannons: number;
+  rain: number;
+  heat: number;
+  ms: number;
+  /** Screen shake and white flash: only for moments that change the top 10. */
+  big: boolean;
+  /** What the score counts up to on the card. */
+  score: number;
+  ticker: string;
+}
+
+function describe(ev: BoardEvent): Show {
   const e = ev.entry;
-  if (ev.type === 'first')
-    return { kind: 'first', kicker: '🚨 THE BOARD IS OPEN 🚨', title: 'FIRST BLOOD', sub: 'SOMEBODY HAD TO GO FIRST. NOW BEAT THEM.', stinger: 'first', sparks: 120, cannons: 90, rain: 120, heat: 1, ms: 5600 };
-  if (ev.type === 'king') {
-    const lead = ev.previous ? e.score - ev.previous.score : 0;
-    const sub = ev.previous ? `${ev.previous.nickname.toUpperCase()} HAS BEEN DETHRONED${lead > 0 ? ` BY ${fmt(lead)}` : ''}` : 'LONG MAY THEY REIGN';
-    return { kind: 'king', kicker: '👑 THE CROWN CHANGES HANDS 👑', title: 'NEW KING', sub, stinger: 'king', sparks: 160, cannons: 160, rain: 200, heat: 1, ms: 6000 };
+  const who = e.nickname.toUpperCase();
+  const base = { cannons: 0, rain: 0, big: true, score: e.score };
+  switch (ev.type) {
+    case 'first':
+      return { ...base, kind: 'first', kicker: '🚨 THE BOARD IS OPEN 🚨', title: 'FIRST BLOOD', sub: 'SOMEBODY HAD TO GO FIRST. NOW BEAT THEM.', stinger: 'first', sparks: 120, cannons: 90, rain: 120, heat: 1, ms: 5600, ticker: `${who} OPENS THE BOARD WITH ${fmt(e.score)}` };
+    case 'king': {
+      const lead = ev.previous ? e.score - ev.previous.score : 0;
+      const sub = ev.previous ? `${ev.previous.nickname.toUpperCase()} HAS BEEN DETHRONED${lead > 0 ? ` BY ${fmt(lead)}` : ''}` : 'LONG MAY THEY REIGN';
+      return { ...base, kind: 'king', kicker: '👑 THE CROWN CHANGES HANDS 👑', title: 'NEW KING', sub, stinger: 'king', sparks: 160, cannons: 160, rain: 200, heat: 1, ms: 6000, ticker: `${who} TAKES THE CROWN WITH ${fmt(e.score)}` };
+    }
+    case 'entry': {
+      const podium = e.rank <= 3;
+      return {
+        ...base,
+        kind: podium ? 'podium' : 'entry',
+        kicker: podium ? '🏆 ON THE PODIUM' : '🔥 NEW CHALLENGER',
+        title: `#${e.rank}`,
+        sub: ev.bumped ? `${ev.bumped.nickname.toUpperCase()} SLIPS TO #${ev.bumped.rank + 1}` : 'ENTERS THE TOP 10',
+        stinger: podium ? 'podium' : 'entry',
+        sparks: podium ? 80 : 50,
+        cannons: podium ? 50 : 0,
+        rain: podium ? 40 : 0,
+        heat: podium ? 0.85 : 0.6,
+        ms: podium ? 4200 : 3400,
+        ticker: `${who} ENTERS AT #${e.rank} WITH ${fmt(e.score)}`,
+      };
+    }
+    case 'climb': {
+      const [first, ...rest] = ev.passed;
+      const passed = first ? `OVERTAKES ${first.nickname.toUpperCase()}${rest.length ? ` +${rest.length} MORE` : ''}` : `+${fmt(ev.gain)} POINTS`;
+      const podium = e.rank <= 3;
+      return { ...base, kind: 'climb', kicker: podium ? '🏆 CLIMBS ONTO THE PODIUM' : '📈 ON THE RISE', title: `#${ev.from} ▸ #${e.rank}`, sub: passed, stinger: 'climb', sparks: 70, cannons: podium ? 40 : 0, heat: 0.7, ms: 3800, ticker: `${who} CLIMBS TO #${e.rank} WITH ${fmt(e.score)}` };
+    }
+    case 'record':
+      return { ...base, kind: 'record', kicker: '⭐ NEW HIGH SCORE', title: `+${fmt(ev.gain)}`, sub: e.rank === 1 ? 'THE KING RAISES THE BAR' : `HOLDS ON TO #${e.rank}`, stinger: 'climb', sparks: 50, heat: 0.55, ms: 3200, ticker: `${who} RAISES THEIR BEST TO ${fmt(e.score)}` };
+    case 'run': {
+      const r = ev.run;
+      const cutoff = current ? entryTarget(current).cutoff : 0;
+      const sub =
+        e.rank > TOP_N
+          ? `${fmt(Math.max(1, cutoff - e.score + 1))} POINTS FROM THE TOP 10`
+          : r.best
+            ? `#${e.rank} ON THE BOARD`
+            : `BEST STAYS ${fmt(e.score)} AT #${e.rank}`;
+      return {
+        ...base,
+        big: false,
+        score: r.run_score,
+        kind: 'run',
+        kicker: r.first ? '🏁 NEW RUNNER' : r.best ? '⭐ PERSONAL BEST' : '🔁 BACK FOR MORE',
+        title: `#${e.rank}`,
+        sub,
+        stinger: 'run',
+        sparks: 30,
+        heat: 0.35,
+        ms: 2600,
+        ticker: `${who} FINISHES ${r.first ? 'THEIR FIRST RUN ' : ''}WITH ${fmt(r.run_score)}`,
+      };
+    }
   }
-  const podium = e.rank <= 3;
-  const sub = ev.bumped ? `${ev.bumped.nickname.toUpperCase()} SLIPS TO #${ev.bumped.rank + 1}` : 'ENTERS THE TOP 10';
-  return {
-    kind: podium ? 'podium' : 'entry',
-    kicker: podium ? '🏆 ON THE PODIUM' : '🔥 NEW CHALLENGER',
-    title: `#${e.rank}`,
-    sub,
-    stinger: podium ? 'podium' : 'entry',
-    sparks: podium ? 80 : 50,
-    cannons: podium ? 50 : 0,
-    rain: podium ? 40 : 0,
-    heat: podium ? 0.85 : 0.6,
-    ms: podium ? 4200 : 3400,
-  };
 }
 
 async function play(ev: BoardEvent, rushed: boolean): Promise<void> {
   const key = ev.entry.key;
-  const live = current?.find((e) => e.key === key);
-  if (!live) return; // knocked off the board again before its turn: skip
+  if (ev.type !== 'run') {
+    const live = current?.find((e) => e.key === key);
+    if (!live) return; // knocked off the board again before its turn: skip
+    // Entries show where the player stands now; a climb or record keeps the rank it reached, or a
+    // later king pushing the climber down would turn "#10 ▸ #9" into "#10 ▸ #10".
+    if (ev.type !== 'climb' && ev.type !== 'record') ev = { ...ev, entry: live };
+  }
   const d = describe(ev);
   const ms = rushed ? d.ms * 0.6 : d.ms;
 
-  remember(
-    ev.type === 'first'
-      ? `${ev.entry.nickname.toUpperCase()} OPENS THE BOARD WITH ${fmt(live.score)}`
-      : ev.type === 'king'
-        ? `${ev.entry.nickname.toUpperCase()} TAKES THE CROWN WITH ${fmt(live.score)}`
-        : `${ev.entry.nickname.toUpperCase()} ENTERS AT #${live.rank} WITH ${fmt(live.score)}`,
-  );
+  remember(d.ticker);
   if (current) renderTicker(current);
 
   $('to-kicker').textContent = d.kicker;
@@ -279,40 +351,48 @@ async function play(ev: BoardEvent, rushed: boolean): Promise<void> {
   $('to-sub').textContent = d.sub;
   takeover.className = `takeover kind-${d.kind}`;
   takeover.hidden = false;
-  setTimeout(() => countTo(score, live.score, 1100), 600);
+  setTimeout(() => countTo(score, d.score, d.big ? 1100 : 800), d.big ? 600 : 400);
 
   sound.play(d.stinger);
   fx.boost(d.heat);
-  replay(flash, 'go');
-  stage.classList.remove('shake');
-  void stage.offsetWidth;
-  stage.classList.add('shake');
+  if (d.big) {
+    replay(flash, 'go');
+    stage.classList.remove('shake');
+    void stage.offsetWidth;
+    stage.classList.add('shake');
+  }
   if (d.cannons) setTimeout(() => fx.cannons(d.cannons), 350);
   if (d.rain) setTimeout(() => fx.rain(d.rain), 700);
   setTimeout(() => fx.sparks(innerWidth / 2, innerHeight / 2, d.sparks), 250);
-  if (ev.type !== 'entry') setTimeout(() => fx.sparks(innerWidth / 2, innerHeight / 2, d.sparks), 1100);
+  if (ev.type === 'first' || ev.type === 'king') setTimeout(() => fx.sparks(innerWidth / 2, innerHeight / 2, d.sparks), 1100);
 
   await sleep(ms);
   takeover.classList.add('out');
   await sleep(300);
   takeover.hidden = true;
-  reveal(key);
-  sound.play('thud');
-  replay(flash, 'go');
-  await sleep(rushed ? 250 : 900);
+  if (ev.type === 'climb' || ev.type === 'record') highlight(key);
+  else if (ev.type !== 'run') {
+    reveal(key);
+    sound.play('thud');
+    replay(flash, 'go');
+  }
+  await sleep(rushed ? 250 : d.big ? 900 : 500);
 }
 
 // ---------- data ----------
 function onData(data: LeaderboardResult): void {
   const top: Entry[] = data.top;
-  const events = diffBoard(current, top);
+  const recent = data.recent ?? [];
+  const boardEvents = diffBoard(current, top);
+  const runEvents = diffRuns(seenRuns, recent, new Set(boardEvents.map((e) => e.entry.key)));
+  seenRuns = new Set([...(seenRuns ?? []), ...recent.map((r) => r.id)].slice(-200));
   const known = new Set((current ?? []).map((e) => e.key));
-  for (const ev of events) if (!known.has(ev.entry.key)) pending.add(ev.entry.key);
+  for (const ev of boardEvents) if (!known.has(ev.entry.key)) pending.add(ev.entry.key);
   renderRows(top);
   renderSide(data);
   current = top;
-  if (!history.length || events.length === 0) renderTicker(top);
-  enqueue(events);
+  if (!history.length || boardEvents.length + runEvents.length === 0) renderTicker(top);
+  enqueue([...runEvents, ...boardEvents]);
 }
 
 async function poll(): Promise<void> {
@@ -383,6 +463,8 @@ addEventListener('keydown', (ev) => {
     else void document.documentElement.requestFullscreen?.();
   } else if (demo && k === ' ') demo.add();
   else if (demo && k === 'k') demo.add(true);
+  else if (demo && k === 'j') demo.improve();
+  else if (demo && k === 'l') demo.miss();
   else if (demo && k === 'r') demo.reset();
   else if (demo && k === 'c') fakeReactions.push({ id: ++fakeId, kind: 'confetti' });
   else if (demo && k === 'e') {
@@ -399,7 +481,7 @@ async function keepAwake(): Promise<void> {
 }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void keepAwake());
 void keepAwake();
-showHint(demo ? 'DEMO · SPACE adds a player · K crowns a new king · C confetti · E emoji · R resets · click for sound' : 'click once to enable sound · F fullscreen', 6000);
+showHint(demo ? 'DEMO · SPACE adds a player · K crowns a new king · J a climb · L a run outside the top 10 · C confetti · E emoji · R resets · click for sound' : 'click once to enable sound · F fullscreen', 6000);
 
 renderRows([]);
 void poll();

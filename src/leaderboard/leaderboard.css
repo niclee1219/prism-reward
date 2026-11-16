@@ -146,6 +146,24 @@ body.lb-page {
 .takeover.kind-first .to-title, .takeover.kind-king .to-title { animation: title-slam 0.7s cubic-bezier(0.2, 1.2, 0.3, 1) 0.15s both, title-throb 0.9s steps(2) 1s infinite; }
 @keyframes title-throb { 50% { transform: scale(1.04); } }
 
+/* climbing inside the top 10, or a new high score that keeps its rank */
+.takeover.kind-climb { --accent: var(--green); background: rgba(6, 24, 16, 0.8); }
+.takeover.kind-record { --accent: var(--gold); background: rgba(8, 8, 28, 0.74); }
+.takeover.kind-climb .rays, .takeover.kind-record .rays { opacity: 0.45; animation-duration: 18s; }
+.takeover.kind-climb .to-title { font-size: min(calc(var(--u) * 12), 9vw); animation: title-rise 0.8s cubic-bezier(0.2, 1.2, 0.3, 1) 0.15s both; }
+.takeover.kind-record .to-title { font-size: min(calc(var(--u) * 14), 10vw); }
+@keyframes title-rise { 0% { transform: translateY(calc(var(--u) * 14)); opacity: 0; } 70% { transform: translateY(calc(var(--u) * -1.2)); opacity: 1; } 100% { transform: none; } }
+
+/* a finisher who did not change the top 10: a lighter, smaller card that slides up */
+.takeover.kind-run { --accent: #8fd3ff; background: rgba(8, 8, 28, 0.55); }
+.takeover.kind-run .rays { display: none; }
+.takeover.kind-run .to-card { padding: calc(var(--u) * 2) calc(var(--u) * 4); animation: card-up 0.45s cubic-bezier(0.2, 1.1, 0.3, 1) both; }
+.takeover.kind-run .to-title { font-size: min(calc(var(--u) * 8), 6vw); margin: calc(var(--u) * 1.2) 0; animation: name-in 0.4s 0.1s both; }
+.takeover.kind-run .to-name { font-size: min(calc(var(--u) * 6.4), 5vw); animation-delay: 0.25s; }
+.takeover.kind-run .to-score { font-size: calc(var(--u) * 4.2); animation-delay: 0.35s; }
+.takeover.kind-run .to-sub { font-size: calc(var(--u) * 3); animation-delay: 0.5s; }
+@keyframes card-up { from { transform: translateY(40vh); opacity: 0; } }
+
 .flash { position: fixed; inset: 0; z-index: 30; background: #fff; opacity: 0; pointer-events: none; }
 .flash.go { animation: lb-flash 0.5s ease-out; }
 @keyframes lb-flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }

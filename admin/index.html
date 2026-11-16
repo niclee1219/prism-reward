@@ -11,7 +11,7 @@
     <form id="login" class="login">
       <h1>PRISM Run staff</h1>
       <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Staff PIN" />
-      <button class="btn" type="submit">Unlock</button>
+      <button class="pix-btn btn" type="submit">Unlock</button>
       <div class="msg err" id="login-msg"></div>
     </form>
 
@@ -34,7 +34,7 @@
 
       <section data-panel="export" hidden>
         <div id="stats" class="stats-grid"></div>
-        <button class="btn" id="export-entries" type="button">Download lucky draw entries (CSV)</button>
+        <button class="pix-btn btn" id="export-entries" type="button">Download lucky draw entries (CSV)</button>
         <div class="msg" id="export-msg"></div>
       </section>
 
@@ -43,13 +43,13 @@
           <h2>Site status</h2>
           <p id="site-state" class="state">Checking...</p>
           <p class="notice">Closed: anyone opening the game sees the beaver forest and cannot play. Players already mid-run can finish and save their score.</p>
-          <button class="btn" id="site-toggle" type="button">...</button>
+          <button class="pix-btn btn" id="site-toggle" type="button">...</button>
         </div>
 
         <div class="card danger">
           <h2>⚠ Reset all data</h2>
           <p class="notice">Permanently deletes every player, score, lucky draw entry and reaction. Settings are kept. This cannot be undone, so export the lucky draw entries first.</p>
-          <button class="btn danger-btn" id="reset-open" type="button">Reset all data…</button>
+          <button class="pix-btn btn danger-btn" id="reset-open" type="button">Reset all data…</button>
           <div class="msg" id="reset-msg"></div>
         </div>
       </section>
@@ -61,8 +61,8 @@
         <div id="modal-body"></div>
         <input id="modal-input" class="field" autocomplete="off" autocapitalize="characters" spellcheck="false" hidden />
         <div class="modal-actions">
-          <button class="btn btn-ghost" id="modal-cancel" type="button">Cancel</button>
-          <button class="btn" id="modal-ok" type="button"></button>
+          <button class="pix-btn pix-btn--cream btn" id="modal-cancel" type="button">Cancel</button>
+          <button class="pix-btn btn" id="modal-ok" type="button"></button>
         </div>
       </div>
     </div>

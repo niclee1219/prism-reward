@@ -202,7 +202,7 @@ export class Fx {
 }
 
 // ---------- sound: tiny synthesised stingers, no audio files ----------
-export type Stinger = 'first' | 'king' | 'entry' | 'podium' | 'thud';
+export type Stinger = 'first' | 'king' | 'entry' | 'podium' | 'climb' | 'run' | 'thud';
 
 export class Sound {
   private ctx: AudioContext | null = null;
@@ -273,6 +273,14 @@ export class Sound {
         this.tone(55, 0.35, 0.4, 'sine', 0.4, 30);
         break;
       }
+      case 'climb': // quick upward run of notes
+        [392, 494, 587, 784].forEach((f, i) => this.tone(f, i * 0.07, 0.22, 'square', 0.07));
+        this.tone(988, 0.3, 0.45, 'triangle', 0.1);
+        break;
+      case 'run': // a small two-note "ding-ding": somebody finished
+        this.tone(660, 0, 0.16, 'square', 0.06);
+        this.tone(880, 0.12, 0.3, 'triangle', 0.08);
+        break;
       case 'thud':
         this.tone(110, 0, 0.25, 'sine', 0.45, 40);
         this.noise(0, 0.12, 0.18);

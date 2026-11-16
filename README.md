@@ -111,7 +111,7 @@ Playwright (`npm i -D playwright && npx playwright install chromium`) if it is n
    supabase db push
    ```
 
-   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0007`. Each is
+   (Or paste the files in `supabase/migrations/` into the SQL editor in order, `0001` to `0008`. Each is
    safe to run more than once.)
 
 3. Set the staff PIN:
