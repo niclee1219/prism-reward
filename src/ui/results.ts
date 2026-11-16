@@ -17,8 +17,8 @@ import { startForest } from './forest';
 import { mountLeaderboard } from './leaderboard';
 import { renderThanks } from './thanks';
 
-/** Lucky-draw entries are for IRAS staff only. The server checks this again. */
-const IRAS_EMAIL = /^[^\s@]+@iras\.gov\.sg$/i;
+/** Lucky-draw entries are for public officers: any *.gov.sg address. The server checks this again. */
+const GOV_EMAIL = /^[^\s@]+@(?:[a-z0-9-]+\.)+gov\.sg$/i;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -352,17 +352,17 @@ export function showResults(
     b.append(strip, pager);
   };
 
-  // --- beat 5: lucky draw (IRAS email + optional feedback) ---------------------
+  // --- beat 5: lucky draw (.gov.sg email + optional feedback) ---------------------
   const beatEmail = (b: HTMLElement) => {
     const cup = el('div', 'draw-ticket');
     cup.append(el('span', 'cup', '☕'), el('i', 'steam s1'), el('i', 'steam s2'), el('i', 'steam s3'));
     b.append(cup);
     const lead = el('h2', 'draw-lead', 'Stand a chance to win a Starbucks gift card!');
-    lead.append(el('small', '', 'Fill in your IRAS email to enter the lucky draw.'));
+    lead.append(el('small', '', 'Fill in your email to enter the lucky draw.'));
     const input = el('input', 'field');
     input.type = 'email';
     input.id = 'email';
-    input.placeholder = 'you@iras.gov.sg';
+    input.placeholder = 'you@agency.gov.sg';
     input.autocomplete = 'email';
     input.autocapitalize = 'none';
     input.spellcheck = false;
@@ -372,7 +372,7 @@ export function showResults(
     feedback.id = 'feedback';
     feedback.maxLength = 500;
     feedback.placeholder = "We'd love to explore deploying PRISM and sharing it with more users. Tell us how it could help you.";
-    const notice = el('p', 'notice', 'Only @iras.gov.sg emails. Used only for the lucky draw and to follow up on your feedback.');
+    const notice = el('p', 'notice', 'Only .gov.sg emails. Used only for the lucky draw and to follow up on your feedback.');
     const send = el('button', 'pix-btn btn', 'ENTER THE DRAW');
     send.type = 'button';
     send.id = 'email-send';
@@ -387,9 +387,9 @@ export function showResults(
     };
     send.addEventListener('click', async () => {
       const email = input.value.trim();
-      if (!IRAS_EMAIL.test(email)) {
+      if (!GOV_EMAIL.test(email)) {
         msg.className = 'msg err';
-        msg.textContent = 'Please use your @iras.gov.sg email.';
+        msg.textContent = 'Please use your .gov.sg email.';
         return;
       }
       send.disabled = true;
@@ -404,7 +404,7 @@ export function showResults(
         const code = e instanceof ApiError ? e.code : '';
         if (code === 'already_entered') finish(); // this device is already in the draw: just carry on
         else if (code === 'email_taken') msg.textContent = 'That email is already in the draw.';
-        else if (code === 'bad_email') msg.textContent = 'Please use your @iras.gov.sg email.';
+        else if (code === 'bad_email') msg.textContent = 'Please use your .gov.sg email.';
         else if (code === 'no_player' || code === 'unknown_device') msg.textContent = 'Your score is still saving. Try again in a moment.';
         else msg.textContent = "Couldn't save that. Try again.";
       }

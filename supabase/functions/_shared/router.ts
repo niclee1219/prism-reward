@@ -23,8 +23,8 @@ export const LIMITS = {
 /** Must match the check constraint in migration 0009 and src/content/dishes.ts. */
 export const DISH_IDS: unknown[] = ['chicken-rice', 'nasi-lemak', 'laksa'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** Lucky-draw entries: IRAS addresses only (exact domain, any case, no subdomains). */
-const EMAIL = /^[^\s@]+@iras\.gov\.sg$/i;
+/** Lucky-draw entries: any *.gov.sg address (iras.gov.sg, mof.gov.sg, ...), any case. Bare @gov.sg is refused. */
+const EMAIL = /^[^\s@]+@(?:[a-z0-9-]+\.)+gov\.sg$/i;
 export const MESSAGE_MAX = 500;
 /** The word staff must type (and the admin API must receive) before everything is deleted. */
 export const RESET_WORD = 'RESET';

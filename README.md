@@ -69,7 +69,7 @@ Without `VITE_API_BASE` the game still plays; scores simply wait in the retry qu
 | Command | What it checks |
 |---|---|
 | `npm test` | Scoring, score cap (incl. the served bonus), difficulty curves, question rules (36 questions, 3 answers, word limits), gate director rules over 1 000 simulated runs, `RunSim` (bot runs reach DISH SERVED, crashes, time-up, one lane per move, every honest run passes the server check), one lane per swipe, dish list in sync with the server, Learn content (ten scenes each with a line, stamps in order, no term named before its stamp, every preset question pulls at least one card and no two pull the same set, every answer cites exactly the pieces it pulled) |
-| `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, lucky draw entries (only exact `@iras.gov.sg`, one per device and per email), reactions (kinds, polling cursor, flood limit), admin PIN and lockout |
+| `npm run test:backend` | The real router and SQL against local Postgres: impossible score rejected, rapid resubmit rejected, idempotent retry, vote bonus on/off and cap, lucky draw entries (only `*.gov.sg`, one per device and per email), reactions (kinds, polling cursor, flood limit), admin PIN and lockout |
 | `npm run load-test` | 200 concurrent submissions, zero errors, leaderboard catches up within 2 s |
 | `VITE_API_BASE=/api npm run build && npm run test:e2e` | A phone-sized Chromium plays the game: first run starts in under 10 s, wrong answers do not crash, a crash ends the run, a full run plays offline from the service-worker cache and submits when the network returns, the 180 s hard stop, the results beats in order (ending on the thank-you card), reactions reaching `/leaderboard`, play again returning home with the dish ticked, the board, the admin actions (closing the site keeps Learn shut on a brand-new phone), and a first visit (Learn opens, a step must be done before NEXT, SKIP marks it seen, home links back, the first PLAY shows the three controls slides and then runs) |
 
@@ -185,7 +185,7 @@ The side panel always says what it takes to get on ("BEAT 1,823" or "3 SPOTS OPE
 - [ ] **Offline drill:** load the game, switch on flight mode, finish a run, switch flight mode off, and
       watch the score save.
 - [ ] **Staff phones:** open `/admin`, enter the PIN, check Runs, Toggles and Export load.
-- [ ] **Lucky draw:** enter a test `@iras.gov.sg` address from a phone, check the thank-you screen, and that the entry shows up in `/admin` → Export. Tap confetti and the emoji and watch them appear on `/leaderboard`.
+- [ ] **Lucky draw:** enter a test `.gov.sg` address from a phone, check the thank-you screen, and that the entry shows up in `/admin` → Export. Tap confetti and the emoji and watch them appear on `/leaderboard`.
 - [ ] **Booth TV:** open `/board` full-screen in landscape; check it is readable from 3 m and that the QR
       code scans from the queue.
 - [ ] **Playtest tuning:** median run should be 60 to 90 s. Adjust `src/config.ts` (see section 7).
@@ -255,7 +255,7 @@ scripts/                   local DB + backend, load test, email purge
 | `GET /reactions?since=<id>` / `POST /reactions` | Live reactions. Phones POST a kind (`confetti`, `heart`, `like`, `fire`, `penguin`, `party`); `/leaderboard` polls for the new ones each second. Limited to 12 per phone per 10 s. |
 | `POST /vote` | Sets or clears the player's "I voted" flag. |
 | `GET /status` | `{open: true/false}`. When staff close the site from `/admin` → Event, the game shows a pixel forest with beavers instead of the home screen. |
-| `POST /email` | Lucky draw entry: an exact `@iras.gov.sg` address (checked on the phone and on the server) plus optional feedback text. One entry per device and per email. |
+| `POST /email` | Lucky draw entry: a `*.gov.sg` address such as `@iras.gov.sg` or `@mof.gov.sg` (checked on the phone and on the server) plus optional feedback text. One entry per device and per email. |
 | `POST /admin/<action>` | PIN in the `x-admin-pin` header. Actions: `login`, `runs`, `delete-run`, `restore-run`, `config`, `set-config`, `stats`, `export-entries`, `reset` (needs `{"confirm":"RESET"}`). |
 
 **Anti-cheat** (lightweight by design): server-side score cap from run length and correct answers; runs
@@ -287,7 +287,7 @@ the server; staff can remove any run live.
 10. **`questions.json` carries the draft flag as a `_comment` field,** because JSON cannot hold `//` comments.
 11. **No prizes to hand out.** The spin wheel, prize codes and staff redeem step are gone: the booth runs one
     lucky draw (a Starbucks gift card) from the email entries, drawn by hand from the CSV.
-12. **Lucky draw entries are IRAS-only** (exact `@iras.gov.sg`, any case, no subdomains) and there is no
+12. **Lucky draw entries are public-officer-only** (any `*.gov.sg` such as `@iras.gov.sg` or `@mof.gov.sg`, any case; bare `@gov.sg` refused) and there is no
     consent checkbox: the card says the email is used only for the draw and to follow up on feedback.
 13. **Reactions poll, like the boards.** A `reactions` table and a `/reactions` endpoint; `/leaderboard` asks
     for new ones every second and caps how many it shows at once, so a flood cannot bury the board.

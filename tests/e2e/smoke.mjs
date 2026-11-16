@@ -171,7 +171,7 @@ try {
   await page.click('#next');
   assert.equal(await beat(), 'email');
   assert.match(await page.textContent('#screen-results'), /win a Starbucks gift card/);
-  assert.match(await page.textContent('.notice'), /Only @iras\.gov\.sg emails/);
+  assert.match(await page.textContent('.notice'), /Only \.gov\.sg emails/);
   // The big /leaderboard screen is already open, so it will see the reactions sent below.
   const lb = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   const firstPoll = lb.waitForResponse((r) => r.url().includes('/reactions?since=-1'));
@@ -179,7 +179,7 @@ try {
   await firstPoll; // the screen has learned the newest reaction id, so it only shows what comes next
   await page.fill('#email', 'tester@gmail.com');
   await page.click('#email-send');
-  await until(async () => (await page.textContent('#screen-results .msg')).includes('@iras.gov.sg'), 5000, 'non-IRAS email refused');
+  await until(async () => (await page.textContent('#screen-results .msg')).includes('.gov.sg'), 5000, 'non-gov.sg email refused');
   assert.equal(await beat(), 'email');
   await page.fill('#email', 'Tester@IRAS.gov.sg');
   await page.fill('#feedback', 'PRISM could help my team find the right section fast.');

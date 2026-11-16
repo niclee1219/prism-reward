@@ -249,16 +249,21 @@ describe('lucky draw entry', () => {
   const enter = (r: { device_id: string }, email: string, extra: Record<string, unknown> = {}) =>
     call('email', { device_id: r.device_id, email, ...extra });
 
-  it('accepts only exact @iras.gov.sg addresses, in any case', async () => {
+  it('accepts only *.gov.sg addresses, in any case', async () => {
     const r = run();
     await call('submit-run', r);
-    for (const bad of ['not-an-email', 'a@gmail.com', 'a@x.iras.gov.sg', 'a@iras.gov.sg.evil.com', 'a@iras.gov', '@iras.gov.sg', 'a b@iras.gov.sg']) {
+    for (const bad of ['not-an-email', 'a@gmail.com', 'a@gov.sg', 'a@iras.gov.sg.evil.com', 'a@iras.gov', 'a@notgov.sg', 'a@iras.gov.sg.', '@iras.gov.sg', 'a b@iras.gov.sg']) {
       const res = await enter(r, bad);
       expect(res.status, bad).toBe(422);
       expect(res.body.error).toBe('bad_email');
     }
     expect((await enter(r, 'Jane.Tan@IRAS.GOV.SG')).body.ok).toBe(true);
     expect((await pool.query('select email from draw_entries')).rows).toEqual([{ email: 'jane.tan@iras.gov.sg' }]);
+    for (const good of ['lim@mof.gov.sg', 'ong@x.iras.gov.sg']) {
+      const other = run();
+      await call('submit-run', other);
+      expect((await enter(other, good)).body.ok, good).toBe(true);
+    }
   });
 
   it('needs a known device', async () => {

@@ -81,6 +81,10 @@ function makeRow(): HTMLLIElement {
   const li = document.createElement('li');
   li.className = 'row';
   li.innerHTML = '<span class="n"></span><span class="name"></span><span class="score"><i class="move"></i><b></b></span>';
+  // One-shot effects: drop the class once it has played, so nothing can ever replay it by accident.
+  li.addEventListener('animationend', (ev) => {
+    if (ev.target === li && !ev.pseudoElement && (ev.animationName === 'climb' || ev.animationName === 'lb-slam')) li.classList.remove('climb', 'slam');
+  });
   return li;
 }
 
@@ -89,9 +93,14 @@ function renderRows(top: Entry[]): void {
   rows.forEach((el, key) => before.set(key, el.getBoundingClientRect().top));
   rowsEl.querySelectorAll('.row.open').forEach((el) => el.remove());
 
-  const seen = new Set<string>();
-  top.forEach((e) => {
-    seen.add(e.key);
+  const seen = new Set(top.map((e) => e.key));
+  rows.forEach((el, key) => {
+    if (!seen.has(key)) {
+      el.remove();
+      rows.delete(key);
+    }
+  });
+  top.forEach((e, i) => {
     let li = rows.get(e.key);
     if (!li) {
       li = makeRow();
@@ -112,13 +121,10 @@ function renderRows(top: Entry[]): void {
       setTimeout(() => (move.className = 'move'), 9000);
       if (up) replay(li, 'climb');
     }
-    rowsEl.appendChild(li); // appending in rank order re-orders existing rows
-  });
-  rows.forEach((el, key) => {
-    if (!seen.has(key)) {
-      el.remove();
-      rows.delete(key);
-    }
+    // Only move a row that is out of place: moving a node restarts its CSS animations, so
+    // re-appending every row on every poll made the rows flash again every 2 seconds.
+    const at = rowsEl.children[i] ?? null;
+    if (at !== li) rowsEl.insertBefore(li, at);
   });
   // Empty slots, so a half-empty board reads as a dare rather than as a bug.
   for (let r = top.length + 1; r <= TOP_N; r++) {
