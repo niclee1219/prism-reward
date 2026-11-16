@@ -396,7 +396,7 @@ export class RunSim {
         this.pushHud();
       }
     }
-    // Collected pickups vanish now; missed coins stay visible until they are behind the camera.
+    // Collected pickups vanish now; missed coins stay visible until they scroll off the bottom of the screen.
     this.pickups = this.pickups.filter((p) => p.d > WORLD.DESPAWN_DIST && !(p.taken && p.d >= -PICKUPS.HIT_DEPTH));
   }
 

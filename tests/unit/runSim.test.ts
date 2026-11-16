@@ -110,7 +110,7 @@ describe('RunSim', () => {
     expect(sim.playerX).toBeCloseTo(0, 5);
   });
 
-  it('obstacles spawn beyond the fog and none can arrive before the safe period ends', () => {
+  it('obstacles spawn above the top of the screen and none can arrive before the safe period ends', () => {
     const sim = new RunSim(mulberry32(3));
     sim.startRun(hooks(() => {}));
     for (let i = 0; i < 60 * RUN.INVULNERABLE_S; i++) {

@@ -1,5 +1,4 @@
 // Pop-up text, banners, emoji, screen flash and the fever border: DOM elements over the canvas, so text stays sharp.
-// Moved unchanged from the old 3D renderer (src/game/three/Fx.ts).
 
 /** Press Start 2P is about 1.6x as wide as the sans the pop-up sizes were tuned for. */
 const PIXEL_FONT_K = 0.62;

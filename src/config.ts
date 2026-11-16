@@ -9,11 +9,11 @@ export const VIEW = {
   MIN_ASPECT: 1.55,
   MAX_ASPECT: 2.25,
   /**
-   * PIXEL ART SIZE of the 3D game: how many CSS pixels wide one rendered pixel is. The street is drawn at
-   * (screen size / PIXEL_SIZE) and blown up with crisp, blocky scaling, so it reads as pixel art.
+   * PIXEL ART SIZE of the run: how many CSS pixels wide one art pixel is. The street, the beaver and everything on
+   * it are drawn at (screen size / PIXEL_SIZE) and blown up with crisp, blocky scaling, so it reads as pixel art.
    *   4 = the same grain as the pixel forest on the thank-you screen (default)
-   *   3 = a bit finer: far-off hazards and coins get a little crisper   2 = subtle   1 = no pixel look.
-   * Any whole number works; the HUD and pop-up text always stay sharp. Bigger is also cheaper to draw.
+   *   3 = finer: more street fits on screen, so the sprites look smaller   5 = chunkier, the sprites look bigger.
+   * Any whole number works (3 to 5 look right); the HUD and pop-up text always stay sharp. Bigger is also cheaper to draw.
    * To try another size on a phone without a rebuild, open the game as /?px=3 (that page load only).
    */
   PIXEL_SIZE: 4,
@@ -24,15 +24,12 @@ export const VIEW = {
  * One unit is one pixel of the old top-down game, so all speeds and intervals carry over.
  */
 export const WORLD = {
-  /** Obstacle rows appear this far ahead (beyond the fog, so nothing pops in). */
+  /** Obstacle rows appear this far ahead (just above the top of the screen, so nothing pops in). */
   SPAWN_DIST: 420,
   /** Things are removed once they are this far behind the player (far enough to scroll off the bottom of the screen). */
   DESPAWN_DIST: -260,
   /** A gate is answered when it is this close. */
   GATE_HIT_DIST: 6,
-  /** World metres per unit of depth, and per lane, for the 3D renderer. */
-  M_PER_UNIT: 0.1,
-  LANE_M: 1.7,
 };
 
 export const RUN = {

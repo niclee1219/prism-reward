@@ -14,7 +14,6 @@ const pretty: Connect.NextHandleFunction = (req, _res, next) => {
 export default defineConfig({
   build: {
     target: 'es2019',
-    chunkSizeWarningLimit: 1800,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
