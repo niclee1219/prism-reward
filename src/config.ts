@@ -26,8 +26,8 @@ export const VIEW = {
 export const WORLD = {
   /** Obstacle rows appear this far ahead (beyond the fog, so nothing pops in). */
   SPAWN_DIST: 420,
-  /** Things are removed once they are this far behind the player. */
-  DESPAWN_DIST: -60,
+  /** Things are removed once they are this far behind the player (far enough to scroll off the bottom of the screen). */
+  DESPAWN_DIST: -260,
   /** A gate is answered when it is this close. */
   GATE_HIT_DIST: 6,
   /** World metres per unit of depth, and per lane, for the 3D renderer. */
