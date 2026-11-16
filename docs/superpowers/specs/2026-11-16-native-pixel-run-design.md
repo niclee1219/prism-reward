@@ -132,8 +132,9 @@ All sprites are drawn with `rect` calls in the style of `chef()` in `src/learn/a
 drawn art (animation is by frame, flips are by mirroring). For speed, sprites may be drawn once into small offscreen
 canvases and stamped with `drawImage` at whole-pixel positions.
 
-Approximate sizes on a ~98 px wide screen (lane about 26 px): beaver 16 x 20, obstacles up to 22 wide, coin 7,
-tingkat 10 x 13, gate arches one lane wide each in the lane colours.
+Approximate sizes on a ~98 px wide screen (lane about 26 px): beaver about 20 x 26 with its outline, obstacles up
+to 22 wide, coin 7, tingkat about 12 x 15, gate arches one lane wide each in the lane colours. (The beaver and the
+tingkat were first planned at 16 x 20 and 10 x 13; they were built bigger because they read more clearly on a phone.)
 
 - **Street:** pale green tiles with a grout grid that scrolls with `travelled`; faint lane dividers; occasional floor
   details (drain cover, yellow tray-return arrow) that never look like hazards. At the sides: stall fronts with

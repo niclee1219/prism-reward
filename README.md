@@ -18,8 +18,8 @@ competitive, and everyone who finishes can enter an IRAS lucky draw for a $10 St
 - `/leaderboard` the high-energy laptop leaderboard: a full-screen show whenever someone makes the board for the first time, enters the top 10 or steals the crown (see below)
 - `/admin` the staff page (PIN-protected, phone-friendly): remove runs, flip the toggles, export the lucky draw entries
 
-**Stack:** Vite + TypeScript + Three.js on the front end (game rules in a renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back
-end; static hosting on Cloudflare Pages.
+**Stack:** Vite + TypeScript on the front end, with the run drawn as pixel art on a plain 2D canvas (game rules in a
+renderer-free `RunSim`); Supabase (Postgres + Edge Functions) on the back end; static hosting on Cloudflare Pages.
 
 > **Before the event:** `src/content/questions.json`, the recipe steps in `src/content/dishes.ts` and the Learn
 > content in `src/content/learn.ts` are DRAFTS. A human must review all 36 questions, 24 recipe steps, and Learn's
@@ -53,6 +53,16 @@ The dev server proxies `/api` to the local backend on port 8787. The local admin
 with the device toolbar on. Arrow keys steer on desktop.
 
 Without `VITE_API_BASE` the game still plays; scores simply wait in the retry queue.
+
+**Developer notes for the pixel art** (these only work with the dev server, `npx vite --port 5199 --strictPort`):
+
+- `/dev/sprites.html` is a gallery of every sprite in the run (obstacles, coins, tingkat, gate, beaver poses,
+  effects, the street and the serve scene). Add `?t=1.2` to freeze the animation, `?only=runner` to show one section.
+- `/?demo=1` starts a run straight away with the name DEMO: no name claim, no Learn, no score upload, and nothing
+  saved on the device. The page exposes the run as `window.__prism` for scripts.
+- `npm run shot -- '/?demo=1' shots/run.png --w 390 --h 780 --wait 3000` saves a screenshot of any page (run it with
+  no arguments for the options). It needs Playwright: either installed in this project, or point `PLAYWRIGHT_MODULE`
+  at a Playwright package folder.
 
 ## 2. Tests
 
@@ -220,11 +230,12 @@ src/
   learn/                   Learn mode: learn.ts (frame, stamps, BACK / NEXT / SKIP), scenes.ts (the ten scenes), art.ts (sprites)
   scene/                   pixelCanvas.ts (tiny crisp canvases), skyline.ts (night market); the forest is ui/forest.ts
   content/questions.json   36 draft questions (4 types x 9, tiers 1-3)
-  game/RunScene.ts         the run: lanes, scrolling, gates, obstacles, endings
+  game/sim/RunSim.ts       the run's rules: lanes, scrolling, gates, obstacles, pickups, endings (no drawing)
+  game/pixel/              draws the run top-down as pixel art: World.ts (each frame, effects, the serve cutscene),
+                           Street.ts, Runner.ts (the beaver), Props.ts (obstacles, coins, tingkat, gate),
+                           Fx.ts (particles), Serve.ts (Ah Ma's stall), Overlay.ts (pop-up text), view.ts (layout)
   game/gateDirector.ts     picks questions: tier by time, no type twice in a row, no repeats, shuffled lanes
   game/difficulty.ts       speed / gate / obstacle curves
-  game/juice.ts            speed lines, fire trail, pop text, shake
-  game/art/                pixel sprites as character grids, baked into one atlas at start-up
   ui/                      HUD, results beats, thank-you card (pixel forest), confetti, shared pixel styles
   net/submitQueue.ts       localStorage queue with backoff: a finished run is never lost
   board/  leaderboard/  admin/   the other pages
@@ -253,13 +264,16 @@ the server; staff can remove any run live.
 
 ## 9. Decisions made where the spec left room
 
-1. **Sprites are drawn in code** (`src/game/art/sprites.ts`) and baked into one atlas at start-up. No image
-   downloads. To use real art later, replace `buildAtlas.ts` with an atlas loader that keeps the frame names.
+1. **Sprites are drawn in code** (`src/game/pixel/`, and `src/learn/art.ts` for Learn) as small filled squares,
+   so there are no image downloads. The whole run is drawn on one small canvas, one canvas pixel per art pixel, and
+   blown up with crisp edges. `VIEW.PIXEL_SIZE` in `src/config.ts` sets how big an art pixel is (4 screen pixels);
+   open the game as `/?px=3` to try another size on a phone without a rebuild.
 2. **Lane-change only, no jump, no sound**, as the spec allows when time is short.
-3. **The question and answers sit in a panel at the top**, with one answer card above each lane, while a
-   coloured gate travels down the road. Text on a moving gate was too hard to read.
+3. **The question and answers sit in a panel at the bottom**, under the beaver, with one answer card under each
+   lane, while a coloured gate comes down the street towards the beaver. Text on a moving gate was too hard to read.
 4. **Tutorial:** the first gate is a tier-1 question whose correct lane is never the one the player is in.
-   The approach runs in slow motion, the right card glows, and an arrow pulses beside the player.
+   The approach runs in slow motion, the right card glows, and a white arrow bounces over the
+   right arch of the gate.
 5. **Vote bonus is sticky per player and applied when the board is read.** Ticking the box once marks the
    player; the board shows `floor(best score x multiplier)`. Turning the toggle off removes the bonus from
    the board immediately. This needed one column beyond the spec's data model: `players.voted`.
@@ -294,7 +308,7 @@ the server; staff can remove any run live.
     shows. If the site closes while someone is already part-way through Learn, they can finish it (like a run in
     progress); FINISH, PLAY or SKIP then land on the closed screen, and the flag is not set, so Learn opens again on
     their next visit once the booth reopens.
-20. **Learn pauses the 3D street** behind it (it is fully covered), so a phone is not drawing two scenes at once.
+20. **Learn pauses the street** behind it (it is fully covered), so a phone is not drawing two scenes at once.
 
 ## 10. Known limits
 
