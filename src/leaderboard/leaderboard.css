@@ -1,5 +1,6 @@
 /* /leaderboard: laptop hype screen over the night-market skyline. Everything is sized in --u (1% of a 16:9 stage
-   height) so it fits any laptop. The list and side panel stop at about 62% of the height so Lau Pa Sat shows below. */
+   height) so it fits any laptop. The list stops at about 62% of the height so Lau Pa Sat shows below; the side panel
+   runs down to the ticker to give the QR code room. */
 @import '../ui/pixel.css';
 :root {
   --u: min(1vh, 0.5625vw);
@@ -17,7 +18,8 @@ body.lb-page {
 .stage { position: relative; z-index: 2; width: 100vw; height: 100vh; display: grid; gap: calc(var(--u) * 1.6) 0;
   grid-template-columns: calc(var(--u) * 78) 1fr calc(var(--u) * 50);
   grid-template-rows: calc(var(--u) * 9.5) 1fr 30vh calc(var(--u) * 6.5);
-  grid-template-areas: 'top top top' 'list gap side' 'low low low' 'tick tick tick';
+  /* the side panel runs down to the ticker so the QR code can be big; Lau Pa Sat still shows below the list */
+  grid-template-areas: 'top top top' 'list gap side' 'low low side' 'tick tick tick';
   padding: calc(var(--u) * 2.2) calc(var(--u) * 3) 0; }
 .stage > * { min-width: 0; }
 .sky-gap { grid-area: gap; }
@@ -95,13 +97,17 @@ body.lb-page {
 .target span { font: 400 calc(var(--u) * 2.5)/1 var(--pix-font-body); }
 .target.bump { animation: lb-bump 0.6s; }
 
-.join { display: grid; grid-template-columns: calc(var(--u) * 12.5) 1fr; gap: calc(var(--u) * 1.6); align-items: center; }
-.qr-box { background: var(--pix-cream); padding: calc(var(--u) * 0.8); border: var(--pix-bw) solid var(--pix-night-ink); }
-.qr-box canvas { width: 100% !important; height: auto !important; display: block; image-rendering: pixelated; }
-.join-text { display: flex; flex-direction: column; gap: calc(var(--u) * 1); }
-.join-text b { font-size: calc(var(--u) * 2); line-height: 1.5; color: var(--gold); }
-.join-text span { font: 400 calc(var(--u) * 2.5)/1.2 var(--pix-font-body); opacity: 0.9; }
-.plays { margin-top: auto; display: flex; align-items: baseline; gap: calc(var(--u) * 1.6); }
+/* the QR code: the biggest thing in the panel, on a cream card with a wide quiet zone so phones lock on fast */
+.join { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--u) * 1.2); text-align: center; }
+.join-head { font-size: calc(var(--u) * 2.6); line-height: 1; color: var(--gold); text-shadow: calc(var(--u) * 0.3) calc(var(--u) * 0.3) 0 var(--pix-night-ink); animation: lb-blink 1.2s steps(2, jump-none) infinite; }
+.qr-box { flex: 0 1 auto; min-height: 0; height: min(calc(var(--u) * 32), 100%); aspect-ratio: 1; background: var(--pix-cream); padding: calc(var(--u) * 2);
+  border: calc(var(--u) * 0.6) solid var(--gold); box-shadow: 0 0 0 var(--pix-bw) var(--pix-night-ink), 0 0 calc(var(--u) * 4) rgba(255, 209, 102, 0.45); animation: qr-glow 2.4s ease-in-out infinite; }
+.qr-box canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
+@keyframes qr-glow { 50% { box-shadow: 0 0 0 var(--pix-bw) var(--pix-night-ink), 0 0 calc(var(--u) * 7) rgba(255, 209, 102, 0.75); } }
+.join-text { display: flex; flex-direction: column; gap: calc(var(--u) * 0.6); }
+.join-text b { font-size: calc(var(--u) * 1.8); line-height: 1.4; color: var(--gold); }
+.join-text span { font: 400 calc(var(--u) * 2.3)/1.2 var(--pix-font-body); opacity: 0.9; }
+.plays { margin-top: auto; display: flex; align-items: baseline; justify-content: center; gap: calc(var(--u) * 1.6); }
 .plays b { white-space: nowrap; }
 .plays b { font: 400 calc(var(--u) * 3.4)/1 var(--pix-font-display); font-variant-numeric: tabular-nums; }
 .plays span { font: 400 calc(var(--u) * 2.6) var(--pix-font-body); opacity: 0.8; }
@@ -171,6 +177,6 @@ body.lb-page {
 .hint.show { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage.shake, .row.slam, .row.climb, .lb-king.changed, .ticker-track, .rays, .king-crown, .row[data-rank='1']::after { animation: none !important; }
+  .stage.shake, .row.slam, .row.climb, .lb-king.changed, .ticker-track, .rays, .king-crown, .row[data-rank='1']::after, .join-head, .qr-box { animation: none !important; }
   .flash.go { animation-duration: 0.01s; }
 }
