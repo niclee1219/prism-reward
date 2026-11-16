@@ -25,6 +25,8 @@ export interface View {
 const PANEL_ROOM = 200;
 /** Spawned things start this many art px above the top edge (taller than any sprite). */
 const SPAWN_ABOVE = 24;
+/** The feet never sit higher than this fraction of the way down the screen. */
+const MIN_FEET = 0.3;
 
 export function makeView(stageW: number, stageH: number, px: number): View {
   const w = Math.ceil(stageW / px);
@@ -33,9 +35,10 @@ export function makeView(stageW: number, stageH: number, px: number): View {
   const offY = (h * px - stageH) / 2;
   const laneW = Math.round((0.8 * w) / 3);
   const roadX = Math.round((w - 3 * laneW) / 2);
-  // About 62% down, but never so low that the bottom panel would reach the feet.
+  // About 62% down, but never so low that the bottom panel would reach the feet. On a stage too short for the panel
+  // (a tiny desktop window) keep the feet at least 30% down anyway, so the depth scale stays positive and finite.
   const lowest = Math.floor((stageH - PANEL_ROOM + offY) / px);
-  const playerY = Math.min(Math.round(h * 0.62), lowest);
+  const playerY = Math.max(Math.min(Math.round(h * 0.62), lowest), Math.round(h * MIN_FEET), 1);
   const unitsPerPx = WORLD.SPAWN_DIST / (playerY + SPAWN_ABOVE);
   return { w, h, px, offX, offY, roadX, laneW, playerY, unitsPerPx };
 }

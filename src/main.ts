@@ -43,7 +43,8 @@ const world = new World(stage, $('game'), sim, {
 (window as unknown as { __prism?: RunSim }).__prism = sim;
 
 // Dev only: /?demo=1 starts a run straight away with a fixed name and no network (no name claim, no Learn, no
-// controls slides, no score upload), so screenshot scripts can drive window.__prism without a backend.
+// controls slides, no score upload, nothing saved on the device), so screenshot scripts can drive window.__prism
+// without a backend.
 const DEMO = import.meta.env.DEV && new URLSearchParams(location.search).has('demo');
 
 const startScreen = $('screen-start');
@@ -211,7 +212,8 @@ async function play(): Promise<void> {
       // Offline or the server is busy: play anyway. The name is claimed when the score is saved.
     }
   }
-  local.nickname = nickname;
+  // A demo run leaves no trace on the device: no DEMO name, no ticked dish.
+  if (!DEMO) local.nickname = nickname;
   nickInput.blur();
   // The controls slides show once, on the first PLAY tap; closing them carries straight on into the run.
   if (!local.seenHowto && !DEMO) await new Promise<void>((done) => showHowto($('screen-howto'), { onClose: done, playing: true }));
@@ -227,7 +229,7 @@ async function play(): Promise<void> {
   hud.show(true, dishById(dish));
   world.reset();
   sim.idle();
-  // Camera swoop + READY / SET; the run itself starts on GO!
+  // The beaver hops into place over READY / SET; the run itself starts on GO!
   world.intro(() => {
     starting = false;
     sim.startRun(
@@ -244,7 +246,7 @@ async function play(): Promise<void> {
 
 function finish(result: RunResult, nickname: string): void {
   hud.show(false);
-  local.markDishDone(result.dish);
+  if (!DEMO) local.markDishDone(result.dish);
   renderDone();
   const runId = uuid();
   // Queue first, so the run is safe even if the tab dies during the results screens.

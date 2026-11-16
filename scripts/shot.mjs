@@ -4,6 +4,7 @@
 //
 // It never starts or stops the dev server: run `npx vite --port 5199 --strictPort` first (if the port is taken,
 // someone else's server is already there; just use it). SHOT_BASE overrides http://localhost:5199.
+// Playwright is loaded from this project's node_modules, else from the folder in PLAYWRIGHT_MODULE.
 // --wait and --eval run in the order given, after the page loads (no steps: wait 600 ms). An --eval is an
 // expression (its JSON result is printed) or a block of statements (use `return` to print something); it may await.
 // --full captures the whole page, not just the viewport (the sprite gallery is taller than a phone).
@@ -18,7 +19,6 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
 const require = createRequire(import.meta.url);
-const FALLBACK = '/Users/nicholas/.npm/_npx/6bcb61ec6d5aea22/node_modules/playwright';
 const BASE = process.env.SHOT_BASE ?? 'http://localhost:5199';
 const AsyncFunction = (async () => {}).constructor;
 
@@ -57,7 +57,7 @@ const url = new URL(urlPath, BASE).href;
 
 function loadPlaywright() {
   const tried = [];
-  for (const id of ['playwright', process.env.PLAYWRIGHT_MODULE, FALLBACK]) {
+  for (const id of ['playwright', process.env.PLAYWRIGHT_MODULE]) {
     if (!id) continue;
     try {
       return require(id);
@@ -65,7 +65,11 @@ function loadPlaywright() {
       tried.push(`${id} (${e.code ?? e.message})`);
     }
   }
-  console.error(`shot: cannot load Playwright. Tried:\n  ${tried.join('\n  ')}\nSet PLAYWRIGHT_MODULE to a playwright package folder.`);
+  console.error(
+    `shot: cannot load Playwright. Tried:\n  ${tried.join('\n  ')}\n` +
+      'Install it in this project (npm i -D playwright && npx playwright install chromium), or set PLAYWRIGHT_MODULE\n' +
+      'to the folder of a playwright package, e.g. PLAYWRIGHT_MODULE=/path/to/node_modules/playwright npm run shot -- ...',
+  );
   process.exit(1);
 }
 

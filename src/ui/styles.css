@@ -107,7 +107,8 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
 @keyframes glow { from { box-shadow: 0 0 0 2px var(--pix-ink), 0 0 0 5px var(--pix-gold); } to { box-shadow: 0 0 0 2px var(--pix-ink), 0 0 0 9px var(--pix-gold); } }
 
 /* ---------- effects over the pixel canvas (World / Overlay.ts) ---------- */
-.fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+/* A size container, so the serve banner's title can be sized to the stage's width (cqw) rather than the window's. */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; container-type: inline-size; }
 .fx-pop { position: absolute; transform: translate(-50%, -50%); font-family: var(--pix-font-display); font-weight: 400; line-height: 1.1; white-space: nowrap; text-shadow: var(--outline-3), 0 6px var(--pix-ink); animation: pop-up 0.9s steps(9) forwards; will-change: transform, opacity; }
 .fx-pop.combo { animation-duration: 1.1s; }
 .fx-pop.power, .fx-pop.hype5, .fx-pop.hype6, .fx-pop.hype7 { animation: served 1.2s steps(12) forwards; }
@@ -143,7 +144,8 @@ body.game-page { overflow: hidden; overscroll-behavior: none; position: fixed; i
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 /* The serve celebration: a big pixel headline and the dish on a tag. */
 .fx-banner { position: absolute; left: 50%; top: 21%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 10px; white-space: nowrap; animation: slam 0.5s steps(5) backwards; }
-.fx-banner b { font: 400 30px/1.1 var(--pix-font-display); color: var(--pix-gold); text-shadow: var(--outline-3), 0 7px var(--pix-ink); }
+/* Press Start 2P letters are a full em wide: 12 of them at 7cqw fill 84% of the stage, leaving a margin even at 360 px. */
+.fx-banner b { font: 400 30px/1.1 var(--pix-font-display); font-size: min(30px, 7cqw); color: var(--pix-gold); text-shadow: var(--outline-3), 0 7px var(--pix-ink); }
 .fx-banner span { font: 400 26px/1 var(--pix-font-body); color: var(--pix-ink); background: var(--c, var(--pix-gold)); padding: 5px 14px 6px; border: 3px solid var(--pix-ink); box-shadow: 4px 4px 0 var(--pix-ink); animation: tag-in 0.4s 0.2s steps(4) backwards; }
 @keyframes tag-in { from { transform: scale(0); opacity: 0; } }
 @keyframes slam { from { transform: translate(-50%, -50%) scale(3.2); opacity: 0; } }

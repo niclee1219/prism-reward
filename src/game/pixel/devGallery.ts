@@ -124,7 +124,10 @@ for (const dt of [0, 0.3]) {
   });
 }
 
-// Gates span the three lanes of the phone view, so their cells are a phone wide.
+// Gates span the three lanes of the phone view, so their cells are a phone wide. They are tall enough for the
+// tutorial's hint arrow bouncing above the arches.
+const GATE_H = 50;
+const GATE_GROUND = 44;
 section('GateSprite: draw(y) spans the lanes; resolve(chosen, correct, ok) then update(dt)');
 const gateCases: [string, number | null, [number, number, boolean] | null, number][] = [
   ['idle', null, null, 0],
@@ -135,7 +138,7 @@ const gateCases: [string, number | null, [number, number, boolean] | null, numbe
   ['wrong, later (+0.5 s)', null, [0, 1, false], 0.5],
 ];
 for (const [name, hint, res, after] of gateCases) {
-  cell(name, phone.w, 34, (t) => {
+  cell(name, phone.w, GATE_H, (t) => {
     f.time = t;
     const g = new GateSprite(hint);
     g.update(t % 1);
@@ -143,8 +146,8 @@ for (const [name, hint, res, after] of gateCases) {
       g.resolve(res[0], res[1], res[2]);
       g.update(after);
     }
-    laneGuides(phone, 34);
-    g.draw(f, 28);
+    laneGuides(phone, GATE_H);
+    g.draw(f, GATE_GROUND);
   });
 }
 
@@ -160,16 +163,19 @@ const poses: [string, (r: Runner, t: number) => void][] = [
   ['lean right', (r, t) => r.update(t, 1, 4)],
   ['hop(1) +.17', (r, t) => { r.update(t, 1, 0); r.hop(1); r.update(0.17, 1, 0); }],
   ['shield', (r, t) => { r.shieldOn = true; r.update(t, 1, 0); }],
+  ['crash +.05', (r, t) => { r.update(t, 1, 0); r.crash(); r.update(0.05, 1, 0); }],
+  ['crash +.15', (r, t) => { r.update(t, 1, 0); r.crash(); r.update(0.15, 1, 0); }],
   ['crash +.3', (r, t) => { r.update(t, 1, 0); r.crash(); r.update(0.3, 1, 0); }],
   ['crash +1', (r, t) => { r.update(t, 1, 0); r.crash(); r.update(1, 1, 0); }],
   ['cheer', (r, t) => { r.cheer(); r.update(t, 1, 0); }],
 ];
+// Feet 8 px above the cell's bottom, so the tail and its outline under the beaver show in full.
 for (const [name, pose] of poses) {
-  cell(name, 30, 34, (t) => {
+  cell(name, 30, 42, (t) => {
     f.time = t;
     const r = new Runner();
     pose(r, t);
-    r.draw(f, 15, 30);
+    r.draw(f, 15, 34);
   });
 }
 

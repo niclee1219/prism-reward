@@ -93,9 +93,10 @@ export class Runner {
     if (this.crashed) {
       const fr = Math.min(Math.floor(this.crashT * CRASH_FPS), CRASH_LAST);
       if (fr === 0) {
-        // Jolt: knocked up off the floor, arms flung out.
+        // Jolt: knocked up off the floor, arms flung out. The tail hangs straight so both tucked feet peek out
+        // evenly (swung to one side it hid the right foot and the pose read lopsided).
         this.shadow(cx, fy, 3);
-        this.upright(cx, fy - 3, -1, -1, 0, 1, 0, 'out');
+        this.upright(cx, fy - 3, -1, -1, 0, 0, 0, 'out');
       } else if (fr === 1) {
         // Toppling forward: the head pitches down onto the shoulders.
         this.shadow(cx, fy, 1);

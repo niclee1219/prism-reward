@@ -1,9 +1,9 @@
 // Draws the RunSim as top-down pixel art on one small 2D canvas: the street scrolls down the screen, three lanes
 // run straight up, the beaver sits near the bottom. The sim owns all rules; this file mirrors its state every
 // animation frame and turns its events into effects, pop-ups, haptics and HUD hooks.
-// It also directs the three moments that used to be camera work: the jog behind the start screen, the hop in under
-// READY / SET / GO, and the serve cutscene (a dash up the street, then the side-view stall from Serve.ts).
-import { GATES, SCORING, SERVE, VIEW, WORLD } from '../../config';
+// It also directs the moments that used to be camera work: the street scrolling behind the start screen, the hop in
+// under READY / SET / GO, and the serve cutscene (a dash up the street, then the side-view stall from Serve.ts).
+import { GATES, RUN, SCORING, SERVE, VIEW, WORLD } from '../../config';
 import { dishById } from '../../content/dishes';
 import { buzz } from '../haptics';
 import { PerfMonitor, reducedMotion } from '../perf';
@@ -60,10 +60,14 @@ const C_DISH = ['#ffd166', '#fff6e0'];
 const C_LAND = ['#ffd166', '#ffffff', '#ff9f1c'];
 const C_FIREWORK: string[][] = PARTY.map((c) => [c, '#ffffff']);
 
-/** The old 3D metres per sim unit: the runner's cadence formula is tuned in metres per second. */
-const M_PER_UNIT = 0.1;
 /** Art px the beaver's head is above its feet (pop-ups and flying ingredients start there). */
 const HEAD = 16;
+/**
+ * A crash knocks the beaver back toward the viewer by this many art px over KNOCK_S, so it ends up lying clear of
+ * the thing it hit instead of piled on top of it (where the obstacle's head poked up over the beaver's).
+ */
+const KNOCK_PX = 16;
+const KNOCK_S = 0.3;
 /** Art px of shake per unit of `shake`. */
 const SHAKE_PX = 5;
 /** Burst speeds in art px per second. */
@@ -122,6 +126,8 @@ export class World {
   private time = 0;
   private lastFrame = 0;
   private fireClock = 0;
+  /** Seconds since the crash, or -1 when there was none this run. */
+  private crashT = -1;
   private lowFx = false;
   // Draw queue (preallocated).
   private qn = 0;
@@ -135,6 +141,8 @@ export class World {
   private introDone: (() => void) | null = null;
   // Serve cutscene state.
   private serving = false;
+  /** The serve scene's side view was on screen last frame (to spot the cut). */
+  private sideShown = false;
   private plated = false;
   private partyClock = 0;
   private cheerClock = 0;
@@ -175,9 +183,11 @@ export class World {
     this.runner.reset();
     this.fx.reset();
     this.serve.stop();
-    this.serving = this.plated = false;
+    this.serving = this.plated = this.sideShown = false;
     this.overlay.clear();
     this.shake = 0;
+    this.crashT = -1;
+    this.partyClock = this.cheerClock = this.fireClock = 0;
   }
 
   /**
@@ -237,7 +247,11 @@ export class World {
     const dt = Math.min(Math.max((now - this.lastFrame) / 1000, 0), 0.05);
     this.lastFrame = now;
     this.time += dt;
-    if (this.perf.tick(dt)) this.lowFx = true;
+    if (this.perf.tick(dt)) {
+      this.lowFx = true;
+      // Once per page load; lets a throttled test (or a curious developer) see that the device could not keep up.
+      console.debug('prism: low-effects mode on (frame rate fell under JUICE.LOW_FPS)');
+    }
 
     this.updateIntro(dt);
     this.sim.update(dt);
@@ -248,7 +262,8 @@ export class World {
     this.lastTravelled = sim.travelled;
     const leanVel = (sim.playerX - this.lastPlayerX) / Math.max(dt, 1e-3);
     this.lastPlayerX = sim.playerX;
-    const speedMs = (step * M_PER_UNIT) / Math.max(dt, 1e-3);
+    // How fast the street moves now, as a multiple of the starting run speed (the serve dash paces the legs by it).
+    const speedK = step / Math.max(dt, 1e-3) / RUN.BASE_SPEED;
     const running = sim.mode === 'run';
     const st = this.serving ? sim.endingT : -1;
     const sideView = this.serving && st >= SERVE_T.CUT;
@@ -263,9 +278,11 @@ export class World {
     // In the serve dash the beaver drifts to the middle lane and runs up the street.
     const lane = this.serving ? sim.playerX + (1 - sim.playerX) * smooth(st / 0.9) : sim.playerX;
     const px = laneX(v, lane);
-    const py = this.serving ? v.playerY - Math.round(smooth(st / SERVE_T.CUT) * v.playerY * 0.5) : v.playerY;
+    if (this.crashT >= 0) this.crashT += dt;
+    const knock = this.crashT >= 0 ? Math.round((1 - (1 - Math.min(this.crashT / KNOCK_S, 1)) ** 2) * KNOCK_PX) : 0;
+    const py = this.serving ? v.playerY - Math.round(smooth(st / SERVE_T.CUT) * v.playerY * 0.5) : v.playerY + knock;
     const cadence = this.serving
-      ? Math.min(speedMs / 15, 2)
+      ? Math.min(speedK, 2)
       : sim.mode === 'attract'
         ? 0.6
         : running
@@ -293,6 +310,10 @@ export class World {
         this.fx.fireTrail(px, py);
       }
     }
+    // At the cut to the side view, sparks and dust from the street dash would carry on at street positions in a
+    // different picture: clear them once.
+    if (sideView && !this.sideShown) this.fx.reset();
+    this.sideShown = sideView;
     this.fx.update(dt, scrollPx);
 
     // --- draw ---
@@ -333,7 +354,9 @@ export class World {
     }
     if (this.gate && sim.gate) this.queue(Item.Gate, 0, depthY(v, sim.gate.d));
     for (let i = 0; i < this.dyingGates.length; i++) this.queue(Item.DyingGate, i, depthY(v, this.dyingGates[i].d));
-    this.queue(Item.Runner, 0, py);
+    // Behind the start screen the panel covers the beaver on every phone size except for its tail poking out
+    // between the panel's pieces, which read as a smudge; it appears with the hop at READY instead.
+    if (sim.mode !== 'attract' || this.introT >= 0) this.queue(Item.Runner, 0, py);
 
     // Insertion sort by y (a few dozen items at most): far (small y) first.
     const n = this.qn;
@@ -430,7 +453,8 @@ export class World {
     this.fx.ring(t.x, t.y, '#ffd166', 9);
     this.fx.ring(t.x, t.y, dish.colour, 5);
     this.fx.burst(t.x, t.y - 4, C_LAND, 90, 7 * SPD, 0.9);
-    for (let i = 0; i < 5; i++) this.fx.confetti(t.x + (i - 2) * 8, t.y - 10, PARTY, 26);
+    // Launched well above the table so the diners' faces stay visible behind it.
+    for (let i = 0; i < 5; i++) this.fx.confetti(t.x + (i - 2) * 8, t.y - 30, PARTY, 26);
     this.overlay.banner('DISH SERVED!', `Ah Ma's ${dish.name}`, dish.colour);
     if (this.sim.score.bonus) this.popScreen(`+${this.sim.score.bonus} BONUS`, 0.5, 0.46, '#52e08a', 30, 'combo');
     this.runner.cheer();
@@ -529,6 +553,7 @@ export class World {
         this.fx.burst(hx, hy, C_CRASH, 70, 6 * SPD);
         this.popScreen('CRASH!', 0.5, 0.35, '#ff8a8a', 44);
         this.runner.crash();
+        this.crashT = 0;
         buzz('crash');
         break;
       case 'end':
@@ -556,7 +581,8 @@ export class World {
     this.serve.start(dishById(this.sim.dish));
     this.servePoints();
     this.overlay.flash('rgba(255,209,102,0.5)');
-    this.popScreen('ORDER UP!', 0.5, 0.36, '#ffd166', 40, 'power');
+    // Low on the screen, under the beaver's feet: the beaver dashes up and away from it instead of through it.
+    this.popScreen('ORDER UP!', 0.5, 0.74, '#ffd166', 40, 'power');
     buzz('shield');
   }
 

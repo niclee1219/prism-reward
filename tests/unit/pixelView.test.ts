@@ -42,6 +42,8 @@ describe('pixel view', () => {
           expect(depthY(v, 0)).toBe(v.playerY);
           expect(depthY(v, WORLD.SPAWN_DIST)).toBeLessThanOrEqual(-24);
           expect(depthY(v, WORLD.DESPAWN_DIST)).toBeGreaterThan(v.playerY);
+          // passed things leave the bottom of the screen before the sim removes them
+          expect(depthY(v, WORLD.DESPAWN_DIST)).toBeGreaterThanOrEqual(v.h);
           for (let d = WORLD.DESPAWN_DIST; d < WORLD.SPAWN_DIST; d += 10) {
             const y = depthY(v, d);
             expect(Number.isInteger(y)).toBe(true);
@@ -57,6 +59,22 @@ describe('pixel view', () => {
       });
     }
   }
+
+  it('keeps every number finite and depth decreasing on a tiny stage', () => {
+    for (const px of SIZES) {
+      const v = makeView(200, 150, px);
+      for (const n of [v.w, v.h, v.playerY, v.unitsPerPx, v.roadX, v.laneW]) expect(Number.isFinite(n)).toBe(true);
+      expect(v.playerY).toBeGreaterThan(0);
+      expect(v.playerY).toBeLessThan(v.h);
+      expect(v.unitsPerPx).toBeGreaterThan(0);
+      // one step of a whole art pixel's worth of depth always moves up the screen
+      const step = Math.ceil(v.unitsPerPx);
+      for (let d = WORLD.DESPAWN_DIST; d < WORLD.SPAWN_DIST; d += step) {
+        expect(Number.isFinite(depthY(v, d))).toBe(true);
+        expect(depthY(v, d + step)).toBeLessThan(depthY(v, d));
+      }
+    }
+  });
 
   it('leaves room for the question panel under the beaver on the shortest stage', () => {
     for (const px of SIZES) {
